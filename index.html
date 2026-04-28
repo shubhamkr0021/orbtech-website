@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrbTech — AI Security Auditing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:ital,wght@0,300;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #0d0f12;
+  --ink-2: #1e2228;
+  --ink-3: #2e333d;
+  --muted: #6b7280;
+  --muted-2: #9ca3af;
+  --surface: #f8f9fa;
+  --surface-2: #f1f3f5;
+  --white: #ffffff;
+  --accent: #F25F1F;
+  --accent-dark: #D04E12;
+  --accent-light: #FFF0E8;
+  --danger: #da1e28;
+  --warn: #F25F1F;
+  --success: #198038;
+  --border: #e5e7eb;
+  --border-2: #d1d5db;
+  --radius: 12px;
+  --radius-lg: 20px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  color: var(--ink);
+  background: var(--white);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Nav ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 5%;
+  height: 64px;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.nav-logo {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  font-size: 1.25rem;
+  color: var(--ink);
+  text-decoration: none;
+  display: flex; align-items: center; gap: 10px;
+}
+
+.logo-dot {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.logo-dot svg { width: 14px; height: 14px; fill: white; }
+
+.nav-links {
+  display: flex; align-items: center; gap: 32px;
+  list-style: none;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover { color: var(--ink); }
+
+.nav-cta {
+  background: var(--ink) !important;
+  color: var(--white) !important;
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 0.875rem !important;
+  transition: background 0.2s !important;
+}
+
+.nav-cta:hover { background: var(--ink-2) !important; }
+
+/* ── Hero ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 120px 5% 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(242,95,31,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 80% 80%, rgba(242,95,31,0.04) 0%, transparent 60%);
+}
+
+.hero-grid {
+  position: absolute; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, black 0%, transparent 80%);
+  opacity: 0.4;
+}
+
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 99px;
+  margin-bottom: 28px;
+  border: 1px solid rgba(242,95,31,0.2);
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s ease both;
+}
+
+.badge-dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.hero h1 {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(2.4rem, 5vw, 4rem);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  max-width: 780px;
+  margin-bottom: 20px;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s ease 0.1s both;
+}
+
+.hero h1 em {
+  font-style: italic;
+  color: var(--accent);
+}
+
+.hero p {
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: 520px;
+  margin-bottom: 40px;
+  font-weight: 400;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s ease 0.2s both;
+}
+
+.hero-actions {
+  display: flex; gap: 12px; align-items: center;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s ease 0.3s both;
+}
+
+.btn-primary {
+  background: var(--ink);
+  color: var(--white);
+  padding: 14px 28px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+  border: none; cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(242,95,31,0.3);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink);
+  padding: 14px 28px;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.95rem;
+  border: 1px solid var(--border-2);
+  transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+
+.btn-secondary:hover {
+  background: var(--surface);
+  border-color: var(--ink-3);
+}
+
+.hero-stats {
+  display: flex; gap: 48px; margin-top: 72px;
+  position: relative; z-index: 1;
+  animation: fadeUp 0.6s ease 0.4s both;
+}
+
+.stat { text-align: center; }
+
+.stat-num {
+  font-family: 'Fraunces', serif;
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Ticker ── */
+.ticker {
+  background: var(--ink);
+  padding: 14px 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.ticker-inner {
+  display: inline-flex; gap: 0;
+  animation: ticker 30s linear infinite;
+}
+
+.ticker-item {
+  display: inline-flex; align-items: center; gap: 12px;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.8rem;
+  font-family: 'DM Mono', monospace;
+  font-weight: 400;
+  padding: 0 32px;
+}
+
+.ticker-item span { color: rgba(255,255,255,0.25); }
+
+@keyframes ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ── Section base ── */
+section { padding: 96px 5%; }
+
+.section-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-family: 'Fraunces', serif;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+
+.section-sub {
+  color: var(--muted);
+  font-size: 1.05rem;
+  max-width: 500px;
+  line-height: 1.7;
+}
+
+.section-header { margin-bottom: 56px; }
+
+/* ── How it works ── */
+.how { background: var(--surface); }
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2px;
+  background: var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.step {
+  background: var(--white);
+  padding: 36px 32px;
+  position: relative;
+}
+
+.step-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  color: var(--muted-2);
+  margin-bottom: 16px;
+  font-weight: 500;
+}
+
+.step-icon {
+  width: 44px; height: 44px;
+  background: var(--accent-light);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 16px;
+}
+
+.step-icon svg { width: 20px; height: 20px; stroke: var(--accent); fill: none; stroke-width: 1.5; }
+
+.step h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.step p {
+  font-size: 0.875rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── Checks ── */
+.checks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.check-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.check-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.check-card:hover {
+  border-color: var(--border-2);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.check-card:hover::before { opacity: 1; }
+
+.check-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.check-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.tag-high { background: #fff0ee; color: var(--warn); }
+.tag-medium { background: #fff8e1; color: #b45309; }
+.tag-low { background: #f0fdf4; color: var(--success); }
+.tag-privacy { background: #eff6ff; color: var(--accent); }
+
+.check-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.check-card p {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* ── Report preview ── */
+.report-section {
+  background: var(--ink);
+  color: var(--white);
+}
+
+.report-section .section-label { color: rgba(255,255,255,0.4); }
+.report-section .section-title { color: var(--white); }
+.report-section .section-sub { color: rgba(255,255,255,0.5); }
+
+.report-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+
+.report-features { display: flex; flex-direction: column; gap: 20px; }
+
+.report-feature {
+  display: flex; gap: 16px; align-items: flex-start;
+}
+
+.feature-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: rgba(255,255,255,0.08);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.feature-icon svg { width: 16px; height: 16px; stroke: rgba(255,255,255,0.7); fill: none; stroke-width: 1.5; }
+
+.report-feature h4 {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.report-feature p {
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.45);
+  line-height: 1.5;
+}
+
+.report-mockup {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  font-family: 'DM Mono', monospace;
+}
+
+.mockup-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.mockup-title {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  font-weight: 500;
+}
+
+.mockup-score {
+  display: flex; align-items: center; gap: 10px;
+}
+
+.score-num {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--warn);
+  font-family: 'Fraunces', serif;
+}
+
+.score-label {
+  font-size: 0.7rem;
+  color: var(--warn);
+  background: rgba(241,98,10,0.15);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-family: 'DM Mono', monospace;
+}
+
+.mockup-rows { display: flex; flex-direction: column; gap: 8px; }
+
+.mockup-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.row-label { color: rgba(255,255,255,0.5); }
+
+.row-badge {
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+
+.badge-high { background: rgba(241,98,10,0.2); color: #f1620a; }
+.badge-medium { background: rgba(202,138,4,0.2); color: #ca8a04; }
+.badge-minimal { background: rgba(107,114,128,0.2); color: #9ca3af; }
+.badge-pass { background: rgba(25,128,56,0.2); color: #22c55e; }
+
+.mockup-regs {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+
+.reg-pill {
+  font-size: 0.65rem;
+  padding: 3px 8px;
+  border-radius: 4px;
+  background: rgba(242,95,31,0.2);
+  color: rgba(99,152,255,1);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── Pricing ── */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.price-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.price-card:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.price-card.featured {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+.featured-label {
+  position: absolute;
+  top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--accent);
+  color: var(--white);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 99px;
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+}
+
+.price-tier {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+.price-amount {
+  font-family: 'Fraunces', serif;
+  font-size: 2.4rem;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.price-period {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+
+.price-features {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 10px;
+  margin-bottom: 28px;
+}
+
+.price-features li {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.check-icon { color: var(--success); font-size: 0.9rem; }
+
+.price-btn {
+  display: block;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: 1px solid var(--border-2);
+  color: var(--ink);
+}
+
+.price-btn:hover { background: var(--surface); }
+
+.price-btn.featured-btn {
+  background: var(--accent);
+  color: var(--white);
+  border-color: var(--accent);
+}
+
+.price-btn.featured-btn:hover {
+  background: var(--accent-dark);
+}
+
+/* ── Compliance ── */
+.compliance { background: var(--surface); }
+
+.compliance-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.compliance-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px;
+}
+
+.compliance-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-light);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 14px;
+}
+
+.compliance-card h3 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.compliance-card p {
+  font-size: 0.82rem;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.compliance-articles {
+  margin-top: 14px;
+  display: flex; flex-wrap: wrap; gap: 6px;
+}
+
+.article-pill {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.68rem;
+  padding: 3px 8px;
+  background: var(--surface-2);
+  color: var(--ink-3);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+/* ── About ── */
+.about-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.about-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 40px;
+  border: 1px solid var(--border);
+}
+
+.about-avatar {
+  width: 64px; height: 64px;
+  background: var(--ink);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+  font-family: 'Fraunces', serif;
+  font-size: 1.4rem;
+  color: var(--white);
+  font-weight: 600;
+}
+
+.about-card h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.about-card .role {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 16px;
+  font-family: 'DM Mono', monospace;
+}
+
+.about-card p {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+
+.skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.skill-tag {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+
+/* ── Contact ── */
+.contact { background: var(--ink); color: var(--white); text-align: center; }
+.contact .section-title { color: var(--white); }
+.contact .section-sub { color: rgba(255,255,255,0.5); margin: 0 auto 40px; }
+
+.contact-options {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 48px;
+}
+
+.contact-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  padding: 20px 28px;
+  text-decoration: none;
+  color: var(--white);
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 12px;
+  min-width: 200px;
+}
+
+.contact-card:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+}
+
+.contact-icon { font-size: 1.2rem; }
+
+.contact-card-text { text-align: left; }
+.contact-card-label { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin-bottom: 2px; }
+.contact-card-value { font-size: 0.9rem; font-weight: 500; }
+
+.free-audit-box {
+  max-width: 480px; margin: 0 auto;
+  background: rgba(15,98,254,0.15);
+  border: 1px solid rgba(242,95,31,0.3);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+}
+
+.free-audit-box h3 {
+  font-family: 'Fraunces', serif;
+  font-size: 1.3rem;
+  margin-bottom: 8px;
+}
+
+.free-audit-box p {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* ── Footer ── */
+footer {
+  background: var(--ink-2);
+  padding: 32px 5%;
+  display: flex; align-items: center; justify-content: space-between;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.footer-logo {
+  font-family: 'Fraunces', serif;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  font-size: 1rem;
+  text-decoration: none;
+}
+
+.footer-note {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.3);
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .hero-stats { gap: 28px; }
+  .report-layout, .about-layout { grid-template-columns: 1fr; gap: 32px; }
+  .pricing-grid, .compliance-grid { grid-template-columns: 1fr; }
+  .steps { grid-template-columns: 1fr; }
+  footer { flex-direction: column; gap: 12px; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="logo-dot">
+      <svg viewBox="0 0 14 14"><circle cx="7" cy="7" r="4"/></svg>
+    </div>
+    OrbTech
+  </a>
+  <ul class="nav-links">
+    <li><a href="#how">How it works</a></li>
+    <li><a href="#checks">Checks</a></li>
+    <li><a href="#pricing">Pricing</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="https://ai-security-scanner-joef.onrender.com" class="nav-cta">Launch App →</a></li>
+  </ul>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-badge">
+    <span class="badge-dot"></span>
+    Now supporting Keras, XGBoost, LightGBM &amp; sklearn
+  </div>
+  <h1>Security audits for<br><em>AI models</em>, in 60 seconds</h1>
+  <p>Upload your ML model and get a full vulnerability report — adversarial attacks, privacy risks, model theft, and regulatory compliance mapping.</p>
+  <div class="hero-actions">
+    <a href="https://ai-security-scanner-joef.onrender.com" class="btn-primary">
+      Try free audit
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>
+    </a>
+    <a href="#pricing" class="btn-secondary">View pricing</a>
+  </div>
+  <div class="hero-stats">
+    <div class="stat">
+      <div class="stat-num">8</div>
+      <div class="stat-label">Security checks</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">&lt;60s</div>
+      <div class="stat-label">Per audit</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">3</div>
+      <div class="stat-label">Frameworks mapped</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num">4</div>
+      <div class="stat-label">Model types</div>
+    </div>
+  </div>
+</section>
+
+<!-- Ticker -->
+<div class="ticker">
+  <div class="ticker-inner">
+    <span class="ticker-item">EU AI Act 2024 <span>·</span></span>
+    <span class="ticker-item">GDPR Article 35 <span>·</span></span>
+    <span class="ticker-item">ISO/IEC 42001 <span>·</span></span>
+    <span class="ticker-item">Membership Inference <span>·</span></span>
+    <span class="ticker-item">Model Stealing <span>·</span></span>
+    <span class="ticker-item">Data Poisoning <span>·</span></span>
+    <span class="ticker-item">Adversarial Robustness <span>·</span></span>
+    <span class="ticker-item">Feature Integrity <span>·</span></span>
+    <span class="ticker-item">Privacy Risk <span>·</span></span>
+    <span class="ticker-item">EU AI Act 2024 <span>·</span></span>
+    <span class="ticker-item">GDPR Article 35 <span>·</span></span>
+    <span class="ticker-item">ISO/IEC 42001 <span>·</span></span>
+    <span class="ticker-item">Membership Inference <span>·</span></span>
+    <span class="ticker-item">Model Stealing <span>·</span></span>
+    <span class="ticker-item">Data Poisoning <span>·</span></span>
+    <span class="ticker-item">Adversarial Robustness <span>·</span></span>
+    <span class="ticker-item">Feature Integrity <span>·</span></span>
+    <span class="ticker-item">Privacy Risk <span>·</span></span>
+  </div>
+</div>
+
+<!-- How it works -->
+<section class="how" id="how">
+  <div class="section-header">
+    <div class="section-label">Process</div>
+    <h2 class="section-title">How it works</h2>
+    <p class="section-sub">Three steps from model to audit report.</p>
+  </div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <h3>Upload your model</h3>
+      <p>Upload any sklearn, XGBoost, LightGBM or Keras model file. No code required — just drag and drop.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      </div>
+      <h3>Scanner runs 8 checks</h3>
+      <p>Adversarial attacks, privacy analysis, model theft simulation, and data integrity — all automated in under 60 seconds.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      </div>
+      <h3>Get your PDF report</h3>
+      <p>Download a full audit report with risk scores, findings in plain English, and regulatory compliance mapping.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <div class="step-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <h3>Fix vulnerabilities</h3>
+      <p>Each finding includes actionable recommendations your engineering team can implement immediately.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Checks -->
+<section id="checks">
+  <div class="section-header">
+    <div class="section-label">Security checks</div>
+    <h2 class="section-title">8 checks, every scan</h2>
+    <p class="section-sub">Every audit runs all 8 checks automatically — no configuration needed.</p>
+  </div>
+  <div class="checks-grid">
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Feature Perturbation Attack</h3>
+        <span class="check-tag tag-high">Evasion</span>
+      </div>
+      <p>Tests whether adding small noise to inputs causes the model to misclassify. Simulates a real attacker crafting adversarial inputs.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Boundary Search Attack</h3>
+        <span class="check-tag tag-high">Evasion</span>
+      </div>
+      <p>Probes the decision boundary to find the minimum change needed to flip a prediction. Measures how exploitable your model boundary is.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Membership Inference</h3>
+        <span class="check-tag tag-privacy">Privacy</span>
+      </div>
+      <p>Checks if an attacker can determine whether specific data was in your training set. Relevant to GDPR Article 35 compliance.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Model Inversion Attack</h3>
+        <span class="check-tag tag-privacy">Privacy</span>
+      </div>
+      <p>Attempts to reconstruct what training data looks like from the model's predictions. Measures training data exposure risk.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Model Stealing Attack</h3>
+        <span class="check-tag tag-high">IP Risk</span>
+      </div>
+      <p>Simulates an attacker cloning your model by querying the API repeatedly. Measures how much of your model logic can be replicated.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Data Poisoning Detection</h3>
+        <span class="check-tag tag-medium">Integrity</span>
+      </div>
+      <p>Detects statistical anomalies in input data that may indicate poisoning attempts — suspicious distributions, label flipping, boundary clustering.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Feature Integrity Analysis</h3>
+        <span class="check-tag tag-medium">Integrity</span>
+      </div>
+      <p>Identifies over-reliance on single features that creates fragility. Relevant to EU AI Act Article 13 explainability requirements.</p>
+    </div>
+    <div class="check-card">
+      <div class="check-header">
+        <h3>Baseline Performance</h3>
+        <span class="check-tag tag-low">Baseline</span>
+      </div>
+      <p>Documents ROC-AUC and accuracy before any attacks. Provides the performance benchmark all other checks are measured against.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Report -->
+<section class="report-section">
+  <div class="report-layout">
+    <div>
+      <div class="section-label">Audit report</div>
+      <h2 class="section-title">One report your whole team can act on</h2>
+      <p class="section-sub">The PDF report has two layers — a plain English executive summary for CTOs and compliance teams, and full technical findings for engineers.</p>
+      <div class="report-features" style="margin-top:36px;">
+        <div class="report-feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div>
+            <h4>Executive summary</h4>
+            <p>Plain English findings, immediate actions, and regulatory flags — written for non-technical decision makers.</p>
+          </div>
+        </div>
+        <div class="report-feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <h4>Technical findings</h4>
+            <p>Full metrics, AUC scores, attack results, and feature analysis — everything your engineering team needs.</p>
+          </div>
+        </div>
+        <div class="report-feature">
+          <div class="feature-icon">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <h4>Regulatory mapping</h4>
+            <p>Each finding mapped to EU AI Act, GDPR, and ISO 42001 articles — so your legal team knows exactly what applies.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="report-mockup">
+      <div class="mockup-header">
+        <span class="mockup-title">AI SECURITY AUDIT REPORT</span>
+        <div class="mockup-score">
+          <span class="score-num">52</span>
+          <span class="score-label">HIGH RISK</span>
+        </div>
+      </div>
+      <div class="mockup-rows">
+        <div class="mockup-row">
+          <span class="row-label">Baseline AUC</span>
+          <span class="row-badge badge-pass">0.9867 PASS</span>
+        </div>
+        <div class="mockup-row">
+          <span class="row-label">Perturbation Attack</span>
+          <span class="row-badge badge-high">HIGH</span>
+        </div>
+        <div class="mockup-row">
+          <span class="row-label">Privacy (MIA)</span>
+          <span class="row-badge badge-medium">MEDIUM 73.3%</span>
+        </div>
+        <div class="mockup-row">
+          <span class="row-label">Model Stealing</span>
+          <span class="row-badge badge-high">HIGH 100%</span>
+        </div>
+        <div class="mockup-row">
+          <span class="row-label">Data Poisoning</span>
+          <span class="row-badge badge-minimal">MINIMAL</span>
+        </div>
+        <div class="mockup-row">
+          <span class="row-label">Model Inversion</span>
+          <span class="row-badge badge-medium">MEDIUM</span>
+        </div>
+      </div>
+      <div class="mockup-regs">
+        <span class="reg-pill">EU AI Act Art.9</span>
+        <span class="reg-pill">GDPR Art.35</span>
+        <span class="reg-pill">ISO 42001 §6.1</span>
+        <span class="reg-pill">GDPR Art.32</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Compliance -->
+<section class="compliance" id="compliance">
+  <div class="section-header">
+    <div class="section-label">Regulatory coverage</div>
+    <h2 class="section-title">Built for compliance teams</h2>
+    <p class="section-sub">Every finding is mapped to the regulations your legal and compliance teams are asking about.</p>
+  </div>
+  <div class="compliance-grid">
+    <div class="compliance-card">
+      <span class="compliance-tag">EU AI Act 2024</span>
+      <h3>AI Act Compliance</h3>
+      <p>Maps findings to the articles most relevant to high-risk AI systems — risk management, data governance, transparency, and post-market monitoring.</p>
+      <div class="compliance-articles">
+        <span class="article-pill">Article 9</span>
+        <span class="article-pill">Article 10</span>
+        <span class="article-pill">Article 13</span>
+        <span class="article-pill">Article 15</span>
+        <span class="article-pill">Article 72</span>
+      </div>
+    </div>
+    <div class="compliance-card">
+      <span class="compliance-tag">GDPR</span>
+      <h3>Data Protection</h3>
+      <p>Privacy vulnerabilities like membership inference and model inversion are mapped to GDPR obligations — helping you assess DPIA requirements.</p>
+      <div class="compliance-articles">
+        <span class="article-pill">Article 5</span>
+        <span class="article-pill">Article 25</span>
+        <span class="article-pill">Article 32</span>
+        <span class="article-pill">Article 35</span>
+      </div>
+    </div>
+    <div class="compliance-card">
+      <span class="compliance-tag">ISO/IEC 42001</span>
+      <h3>AI Management System</h3>
+      <p>This report provides documented evidence for ISO 42001 clauses covering risk identification, impact assessment, and ongoing monitoring obligations.</p>
+      <div class="compliance-articles">
+        <span class="article-pill">Clause 6.1</span>
+        <span class="article-pill">Clause 8.4</span>
+        <span class="article-pill">Clause 9.1</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section id="pricing">
+  <div class="section-header" style="text-align:center;">
+    <div class="section-label">Pricing</div>
+    <h2 class="section-title">Simple, transparent pricing</h2>
+    <p class="section-sub" style="margin:0 auto;">Start free. Pay when you need more.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-tier">Free</div>
+      <div class="price-amount">₹0</div>
+      <div class="price-period">forever</div>
+      <ul class="price-features">
+        <li><span class="check-icon">✓</span> 1 scan per month</li>
+        <li><span class="check-icon">✓</span> 8 security checks</li>
+        <li><span class="check-icon">✓</span> PDF audit report</li>
+        <li><span class="check-icon">✓</span> All model types</li>
+      </ul>
+      <a href="https://ai-security-scanner-joef.onrender.com" class="price-btn">Start free</a>
+    </div>
+    <div class="price-card featured">
+      <span class="featured-label">Most popular</span>
+      <div class="price-tier">Pro</div>
+      <div class="price-amount">₹2,999</div>
+      <div class="price-period">per month</div>
+      <ul class="price-features">
+        <li><span class="check-icon">✓</span> Unlimited scans</li>
+        <li><span class="check-icon">✓</span> Scan history</li>
+        <li><span class="check-icon">✓</span> API access</li>
+        <li><span class="check-icon">✓</span> Priority support</li>
+        <li><span class="check-icon">✓</span> Regulatory mapping</li>
+      </ul>
+      <a href="mailto:contact@orbtech.in?subject=Pro Plan Enquiry" class="price-btn featured-btn">Coming soon</a>
+    </div>
+    <div class="price-card">
+      <div class="price-tier">Audit</div>
+      <div class="price-amount">₹25,000</div>
+      <div class="price-period">one-time</div>
+      <ul class="price-features">
+        <li><span class="check-icon">✓</span> Manual expert audit</li>
+        <li><span class="check-icon">✓</span> Custom report</li>
+        <li><span class="check-icon">✓</span> Compliance review</li>
+        <li><span class="check-icon">✓</span> Remediation plan</li>
+        <li><span class="check-icon">✓</span> 1 hour consultation</li>
+      </ul>
+      <a href="mailto:contact@orbtech.in?subject=Manual Audit Enquiry" class="price-btn">Contact us</a>
+    </div>
+  </div>
+</section>
+
+<!-- About -->
+<section id="about">
+  <div class="about-layout">
+    <div>
+      <div class="section-label">About</div>
+      <h2 class="section-title">Built by someone who understands both AI and security</h2>
+      <p class="section-sub">Most AI security tools are built by security teams who learned ML, or ML teams who learned security. OrbTech was built by someone who studied both from the ground up.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-avatar">SK</div>
+      <h3>Shubham Kumar</h3>
+      <div class="role">Founder, OrbTech</div>
+      <p>MCA graduate with dual expertise in machine learning and cybersecurity. Built AI Security Scanner after noticing that companies deploying ML models had no practical way to assess their vulnerability to real-world attacks.</p>
+      <div class="skill-tags">
+        <span class="skill-tag">Machine Learning</span>
+        <span class="skill-tag">Cybersecurity</span>
+        <span class="skill-tag">Python</span>
+        <span class="skill-tag">Adversarial ML</span>
+        <span class="skill-tag">FastAPI</span>
+        <span class="skill-tag">TensorFlow</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Contact -->
+<section class="contact" id="contact">
+  <div class="section-label">Contact</div>
+  <h2 class="section-title">Get a free audit this month</h2>
+  <p class="section-sub">Offering 5 free manual audits to ML teams in exchange for honest feedback. Reach out via any channel below.</p>
+  <div class="contact-options">
+    <a href="mailto:contact@orbtech.in" class="contact-card">
+      <span class="contact-icon">✉</span>
+      <div class="contact-card-text">
+        <div class="contact-card-label">Email</div>
+        <div class="contact-card-value">contact@orbtech.in</div>
+      </div>
+    </a>
+    <a href="https://linkedin.com/in/shubhamkr0021" class="contact-card" target="_blank">
+      <span class="contact-icon">in</span>
+      <div class="contact-card-text">
+        <div class="contact-card-label">LinkedIn</div>
+        <div class="contact-card-value">shubhamkr0021</div>
+      </div>
+    </a>
+    <a href="https://ai-security-scanner-joef.onrender.com" class="contact-card" target="_blank">
+      <span class="contact-icon">↗</span>
+      <div class="contact-card-text">
+        <div class="contact-card-label">Live app</div>
+        <div class="contact-card-value">Try it now</div>
+      </div>
+    </a>
+  </div>
+  <div class="free-audit-box">
+    <h3>Request a free audit</h3>
+    <p>Send your model file and test data to contact@orbtech.in with subject "Free Audit Request". We'll run the scan and send you the full PDF report within 24 hours.</p>
+    <a href="mailto:contact@orbtech.in?subject=Free Audit Request&body=Hi Shubham,%0A%0AI'd like to request a free security audit for my ML model.%0A%0AModel type: %0AUse case: %0ACompany/Project: " class="btn-primary" style="display:inline-flex; background:var(--accent);">
+      Send audit request
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>
+    </a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <a href="#" class="footer-logo">OrbTech</a>
+  <span class="footer-note">© 2026 OrbTech · orbtech.in · AI Security Auditing</span>
+</footer>
+
+</body>
+</html>
