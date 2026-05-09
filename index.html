@@ -9,6 +9,22 @@
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Fix form input text colors */
+.free-audit-box input,
+.free-audit-box textarea {
+  color: #ffffff !important;
+}
+
+.free-audit-box input::placeholder,
+.free-audit-box textarea::placeholder {
+  color: rgba(255,255,255,0.35) !important;
+}
+
+.free-audit-box select option {
+  background: #1e2228;
+  color: #ffffff;
+}
+
 :root {
   --ink: #0d0f12;
   --ink-2: #1e2228;
@@ -1311,17 +1327,17 @@ footer {
         Model type
       </label>
       <select name="model_type"
-              style="width:100%; padding:10px 14px; background:rgba(30,34,40,0.95);
-                     border:1px solid rgba(255,255,255,0.12); border-radius:8px;
-                     color:rgba(255,255,255,0.8); font-size:0.875rem;
-                     font-family:'DM Sans',sans-serif; outline:none;">
-        <option value="">Select model type</option>
-        <option value="sklearn">scikit-learn (.pkl)</option>
-        <option value="xgboost">XGBoost (.json)</option>
-        <option value="lightgbm">LightGBM (.txt)</option>
-        <option value="keras">Keras / TensorFlow (.h5)</option>
-        <option value="other">Other</option>
-      </select>
+        style="width:100%; padding:10px 14px; background:rgba(30,34,40,0.95);
+               border:1px solid rgba(255,255,255,0.12); border-radius:8px;
+               color:rgba(255,255,255,0.8); font-size:0.875rem;
+               font-family:'DM Sans',sans-serif; outline:none;">
+  <option value="" style="background:#1e2228; color:#ffffff;">Select model type</option>
+  <option value="sklearn" style="background:#1e2228; color:#ffffff;">scikit-learn (.pkl)</option>
+  <option value="xgboost" style="background:#1e2228; color:#ffffff;">XGBoost (.json)</option>
+  <option value="lightgbm" style="background:#1e2228; color:#ffffff;">LightGBM (.txt)</option>
+  <option value="keras" style="background:#1e2228; color:#ffffff;">Keras / TensorFlow (.h5)</option>
+  <option value="other" style="background:#1e2228; color:#ffffff;">Other</option>
+</select>
     </div>
 
     <div>
