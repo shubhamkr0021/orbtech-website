@@ -1293,7 +1293,12 @@ footer {
   </div>
   <div class="free-audit-box" style="max-width:560px;">
   <h3>Request a free audit</h3>
-  <p>Fill in the form below. We'll send you an invite code within 24 hours.</p>
+  <p style="margin-bottom:8px;">Fill in the form below to request access.</p>
+  <ol style="font-size:0.82rem; color:rgba(255,255,255,0.55); line-height:1.7; padding-left:20px; margin-bottom:20px;">
+    <li>Submit your details below</li>
+    <li>I'll personally reply within 24 hours from <strong style="color:rgba(255,255,255,0.75);">security@orbtech.in</strong> with your invite code</li>
+    <li>Open <strong style="color:rgba(255,255,255,0.75);">app.orbtech.in</strong>, paste the code, and run your first scan</li>
+  </ol>
 
   <form id="audit-form" action="https://formspree.io/f/mbdwavbo" method="POST"
         style="display:flex; flex-direction:column; gap:12px; margin-top:20px; text-align:left;">
@@ -1387,13 +1392,18 @@ footer {
   </form>
 
   <!-- Success message shown after submission -->
-  <div id="form-success" style="display:none; margin-top:16px; padding:16px;
+  <div id="form-success" style="display:none; margin-top:16px; padding:20px;
        background:rgba(25,128,56,0.15); border:1px solid rgba(25,128,56,0.3);
-       border-radius:8px; text-align:center;">
-    <div style="font-size:1.5rem; margin-bottom:8px;">✓</div>
-    <div style="font-weight:600; margin-bottom:4px;">Request received!</div>
-    <div style="font-size:0.85rem; color:rgba(255,255,255,0.5);">
-      We'll send your invite code to your email within 24 hours.
+       border-radius:8px; text-align:left;">
+    <div style="font-size:1.5rem; margin-bottom:8px; text-align:center;">✓</div>
+    <div style="font-weight:600; margin-bottom:12px; text-align:center;">Request received</div>
+    <div style="font-size:0.85rem; color:rgba(255,255,255,0.6); line-height:1.7;">
+      <strong style="color:rgba(255,255,255,0.85);">What happens next:</strong>
+      <ol style="padding-left:20px; margin-top:8px;">
+        <li>I'll personally review your request</li>
+        <li>You'll get a reply from <strong style="color:rgba(255,255,255,0.85);">security@orbtech.in</strong> within 24 hours with your invite code</li>
+        <li>Check your spam folder if you don't see it &mdash; add the address to your contacts</li>
+      </ol>
     </div>
   </div>
 </div>
