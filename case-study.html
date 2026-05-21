@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Case Study — A 98% Accurate Model With 3 Critical Vulnerabilities | OrbTech</title>
+<title>Case Study - A 98% Accurate Model With 3 Critical Vulnerabilities | OrbTech</title>
 <meta name="description" content="How OrbTech audited a production-grade credit card fraud detection model and found privacy leaks, model theft risk, and adversarial fragility hidden behind a 98% accuracy score.">
 <link rel="icon" type="image/png" sizes="512x512" href="logo/orb_tech_icon_512px.png">
 <link rel="apple-touch-icon" href="logo/orb_tech_icon_512px.png">
 
 <!-- Open Graph / LinkedIn preview -->
 <meta property="og:title" content="A 98% Accurate Model With 3 Critical Vulnerabilities">
-<meta property="og:description" content="An OrbTech security audit of a public credit card fraud model — what accuracy scores don't tell you.">
+<meta property="og:description" content="An OrbTech security audit of a public credit card fraud model - what accuracy scores don't tell you.">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://orbtech.in/case-study.html">
 
@@ -245,7 +245,7 @@ footer {
     <div class="breadcrumb"><a href="/">Home</a> <span>/</span> Case Study</div>
     <span class="case-badge"><span class="badge-dot"></span>Credit Card Fraud Model</span>
     <h1>A 98% accurate model with <em>three critical vulnerabilities</em></h1>
-    <p class="article-lede">How OrbTech audited a production-grade fraud detection model trained on 284,807 real transactions — and what it found beyond the accuracy score.</p>
+    <p class="article-lede">How OrbTech audited a production-grade fraud detection model trained on 284,807 real transactions - and what it found beyond the accuracy score.</p>
   </div>
   <div class="meta-strip">
     <div class="meta-cell"><div class="k">Dataset</div><div class="v">Kaggle Fraud<small>284,807 transactions</small></div></div>
@@ -259,16 +259,16 @@ footer {
 
   <!-- Background -->
   <div class="block">
-    <div class="section-label">01 — Background</div>
+    <div class="section-label">01 - Background</div>
     <h2>The question accuracy can't answer</h2>
-    <p>This case study documents an OrbTech security audit of a credit card fraud detection model trained on the Kaggle Credit Card Fraud dataset — one of the most widely used public benchmarks in financial ML. It represents the kind of production-grade classifier Indian fintech teams deploy every day: high accuracy, real transaction data, binary classification.</p>
+    <p>This case study documents an OrbTech security audit of a credit card fraud detection model trained on the Kaggle Credit Card Fraud dataset - one of the most widely used public benchmarks in financial ML. It represents the kind of production-grade classifier Indian fintech teams deploy every day: high accuracy, real transaction data, binary classification.</p>
     <p>The audit set out to answer one question: <strong>does an excellent accuracy score mean a model is safe to deploy under DPDP Act, GDPR, and EU AI Act requirements?</strong></p>
     <p class="pull">The short answer: no.</p>
   </div>
 
   <!-- Findings table -->
   <div class="block">
-    <div class="section-label">02 — Audit Findings</div>
+    <div class="section-label">02 - Audit Findings</div>
     <h2>All 8 checks, one scan</h2>
     <p>OrbTech ran every security check automatically in a single 60-second scan. Here is the full result set:</p>
     <div class="table-wrap">
@@ -290,31 +290,31 @@ footer {
 
   <!-- Key findings -->
   <div class="block">
-    <div class="section-label">03 — The Three That Matter</div>
+    <div class="section-label">03 - The Three That Matter</div>
     <h2>Key findings explained</h2>
 
     <div class="finding">
       <div class="finding-head"><h3>Model Stealing</h3><span class="badge high">HIGH</span></div>
-      <p>A surrogate model achieved <strong>100% agreement</strong> with the original across test predictions. An attacker could reconstruct a functionally identical copy of the model purely by querying its prediction API — no access to training data or source code required. For a team that invested months of data science work, that is a direct IP and competitive risk.</p>
+      <p>A surrogate model achieved <strong>100% agreement</strong> with the original across test predictions. An attacker could reconstruct a functionally identical copy of the model purely by querying its prediction API - no access to training data or source code required. For a team that invested months of data science work, that is a direct IP and competitive risk.</p>
       <div class="reg"><b>Regulatory relevance:</b> constitutes misappropriation of a proprietary AI system, triggering IP protection obligations under Indian IP law.</div>
     </div>
 
     <div class="finding">
       <div class="finding-head"><h3>Membership Inference</h3><span class="badge med">MEDIUM</span></div>
-      <p>The scanner determined whether a specific record was in the training set with <strong>73.3% accuracy</strong> (random chance is 50%). If the training data included real customer transactions, an attacker could probe the model to confirm whether a specific individual's data was used — a genuine privacy breach.</p>
+      <p>The scanner determined whether a specific record was in the training set with <strong>73.3% accuracy</strong> (random chance is 50%). If the training data included real customer transactions, an attacker could probe the model to confirm whether a specific individual's data was used - a genuine privacy breach.</p>
       <div class="reg"><b>Regulatory relevance:</b> GDPR Article 35 requires a DPIA for large-scale personal data processing. DPDP Act 2023 imposes similar obligations on Indian data fiduciaries. A 73.3% result is direct evidence a DPIA is required.</div>
     </div>
 
     <div class="finding">
       <div class="finding-head"><h3>Feature Perturbation</h3><span class="badge high">HIGH</span></div>
-      <p>Under deliberate input perturbation — small, crafted noise added to transaction features — the model's fraud detection accuracy dropped sharply. This simulates exactly the manipulation a sophisticated fraudster would attempt: crafting transactions to evade detection without triggering obvious anomalies.</p>
+      <p>Under deliberate input perturbation - small, crafted noise added to transaction features - the model's fraud detection accuracy dropped sharply. This simulates exactly the manipulation a sophisticated fraudster would attempt: crafting transactions to evade detection without triggering obvious anomalies.</p>
       <div class="reg"><b>Regulatory relevance:</b> EU AI Act Article 15 requires high-risk AI systems to withstand adversarial manipulation. A fintech fraud model is a strong candidate for high-risk classification under Annex III.</div>
     </div>
   </div>
 
   <!-- Callout -->
   <div class="callout">
-    <p>"A model that scores 98% accuracy can still leak private data, be stolen, and be fooled by adversarial inputs. Accuracy measures performance — it says nothing about security."</p>
+    <p>"A model that scores 98% accuracy can still leak private data, be stolen, and be fooled by adversarial inputs. Accuracy measures performance - it says nothing about security."</p>
   </div>
 
   <!-- Download CTA -->
@@ -323,14 +323,15 @@ footer {
     <h2>Read the complete audit</h2>
     <p>The full PDF includes model and dataset specs, all 8 check results, detailed regulatory mapping across GDPR, DPDP Act, EU AI Act and ISO 42001, and remediation steps for every finding.</p>
     <a href="case-study.pdf" class="btn-primary" download>↓ Download case study PDF</a>
+    <a href="sample-scan-report.pdf" class="btn-ghost" download>↓ See the actual scanner output</a>
     <a href="https://app.orbtech.in" class="btn-ghost">Run it on your own model →</a>
   </div>
 
   <!-- About / final CTA -->
   <div class="block about-final">
-    <div class="section-label">04 — About OrbTech</div>
+    <div class="section-label">04 - About OrbTech</div>
     <h2>Built for Indian ML teams</h2>
-    <p>OrbTech runs 8 automated security checks — adversarial attacks, privacy analysis, model theft simulation, data integrity — on any sklearn, XGBoost, LightGBM, or Keras model, in under 60 seconds. Every scan generates a PDF audit report with risk scores, plain-English findings for compliance teams, technical detail for engineers, and regulatory mapping to EU AI Act, GDPR, ISO 42001, and DPDP Act 2023.</p>
+    <p>OrbTech runs 8 automated security checks - adversarial attacks, privacy analysis, model theft simulation, data integrity - on any sklearn, XGBoost, LightGBM, or Keras model, in under 60 seconds. Every scan generates a PDF audit report with risk scores, plain-English findings for compliance teams, technical detail for engineers, and regulatory mapping to EU AI Act, GDPR, ISO 42001, and DPDP Act 2023.</p>
     <p>Want to audit your own model? DM <a href="https://www.linkedin.com/in/shubhamkumar-orbtech/">Shubham Kumar on LinkedIn</a> or email <a href="mailto:security@orbtech.in">security@orbtech.in</a> for a free invite code.</p>
   </div>
 
