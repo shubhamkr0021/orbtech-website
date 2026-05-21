@@ -214,8 +214,27 @@ footer {
 .footer-logo { font-family: 'Fraunces', serif; font-weight: 600; color: rgba(255,255,255,0.6); font-size: 1rem; text-decoration: none; }
 .footer-note { font-size: 0.8rem; color: rgba(255,255,255,0.3); font-family: 'DM Mono', monospace; }
 
+.nav-toggle {
+  display: none;
+  background: none; border: none; cursor: pointer;
+  font-size: 1.5rem; color: var(--ink); padding: 4px 8px;
+}
+
 @media (max-width: 768px) {
-  .nav-links { display: none; }
+  .nav-toggle { display: block; }
+  .nav-links {
+    display: none;
+    position: absolute; top: 64px; left: 0; right: 0;
+    flex-direction: column; align-items: flex-start;
+    gap: 0; padding: 8px 5%;
+    background: var(--white);
+    border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+  }
+  .nav-links.open { display: flex; }
+  .nav-links li { width: 100%; }
+  .nav-links a { display: block; padding: 12px 0; width: 100%; }
+  .nav-links .nav-cta { margin: 8px 0; text-align: center; }
   footer { flex-direction: column; gap: 12px; text-align: center; }
 }
 </style>
@@ -227,6 +246,7 @@ footer {
   <a href="/" class="nav-logo">
     <img src="logo/orb_tech_logo.png" alt="OrbTech" style="height:36px; width:auto;">
   </a>
+  <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
   <ul class="nav-links">
     <li><a href="/#how">How it works</a></li>
     <li><a href="/#checks">Checks</a></li>
