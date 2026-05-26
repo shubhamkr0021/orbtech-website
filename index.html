@@ -1533,7 +1533,7 @@ footer {
           <li><span class="check-icon">✓</span> PDF report download</li>
           <li><span class="check-icon">✓</span> sklearn, XGBoost, LightGBM, Keras</li>
         </ul>
-        <a href="#contact" class="price-btn" style="border-color:rgba(25,128,56,0.5);color:#3FB87A;">Request free audit</a>
+        <a href="#contact" class="price-btn" style="border-color:rgba(25,128,56,0.5);color:#3FB87A;" onclick="event.preventDefault();document.getElementById('contact').scrollIntoView({behavior:'smooth'});document.querySelectorAll('#contact .reveal').forEach(el=>el.classList.add('visible'));">Start free →</a>
       </div>
 
       <!-- Pro -->
@@ -1553,9 +1553,9 @@ footer {
       </div>
 
       <!-- Audit -->
-      <div class="price-card reveal reveal-delay-3">
-  <div class="featured-label-muted">COMING SOON</div>
-  <div class="price-tier">Manual Audit</div>
+      <div class="price-card reveal reveal-delay-3" style="opacity:0.4;pointer-events:none;user-select:none;">
+        <div class="featured-label-muted">NOT AVAILABLE</div>
+        <div class="price-tier">Manual Audit</div>
         <div class="price-amount">₹25K</div>
         <div class="price-period">one-time</div>
         <ul class="price-features">
@@ -1565,7 +1565,7 @@ footer {
           <li><span class="check-icon">✓</span> Compliance sign-off letter</li>
           <li><span class="check-icon">✓</span> 1 follow-up session</li>
         </ul>
-        <a href="#contact" class="price-btn">Request audit</a>
+        <span class="price-btn" style="opacity:0.5;cursor:not-allowed;">Not available yet</span>
       </div>
     </div>
   </div>
