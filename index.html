@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OrbTech - AI Security Auditing</title>
+<meta name="description" content="Upload your ML model and get a full AI security audit in 60 seconds — adversarial attacks, privacy risks, model theft, and regulatory compliance mapping. Built for Indian fintech and healthtech.">
+<meta property="og:title" content="OrbTech — AI Security Auditing">
+<meta property="og:description" content="Security audits for AI models in 60 seconds. Adversarial attacks, privacy analysis, and compliance mapping for GDPR, EU AI Act, ISO 42001 and DPDP Act.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="OrbTech — AI Security Auditing">
+<meta name="twitter:description" content="Security audits for AI models in 60 seconds.">
 <link rel="icon" type="image/png" href="logo/orb_tech_icon_512px.png">
 <link rel="apple-touch-icon" href="logo/orb_tech_icon_512px.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,7 +32,7 @@
   --orange-glow: rgba(242,95,31,0.35);
   --text:      #F0F2F5;
   --text-2:    #8892A0;
-  --text-3:    #50596A;
+  --text-3:    #68748A;
   --mono:      'DM Mono', monospace;
   --sans:      'Sora', sans-serif;
   --radius:    14px;
@@ -800,6 +807,22 @@ section {
   white-space: nowrap;
 }
 
+.featured-label-muted {
+  position: absolute;
+  top: -1px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-3);
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  padding: 4px 14px;
+  border-radius: 0 0 8px 8px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+
 .price-tier {
   font-family: var(--mono);
   font-size: 0.7rem;
@@ -1170,7 +1193,22 @@ footer {
 
 /* ─── RESPONSIVE ─── */
 @media (max-width: 900px) {
-  .hero-stats { display: none; }
+  .hero-stats {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    transform: none;
+    animation: fadeSlideUp 0.8s ease 0.8s forwards;
+    justify-content: center;
+    margin-top: 28px;
+    gap: 10px;
+  }
+  .hero-stats .stat-card {
+    text-align: center;
+    padding: 14px 16px;
+    min-width: 100px;
+    flex: 1 1 100px;
+  }
   .hero { align-items: center; text-align: center; padding-top: 110px; }
   .hero h1 { text-align: center; }
   .hero-actions { justify-content: center; }
@@ -1217,7 +1255,7 @@ footer {
   <a href="#" class="nav-logo">
     <img src="logo/orb_tech_logo.png" alt="OrbTech">
   </a>
-  <button class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">☰</button>
+  <button class="nav-toggle" id="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleMenu()">☰</button>
   <ul class="nav-links">
     <li><a href="#how">How it works</a></li>
     <li><a href="#checks">Checks</a></li>
@@ -1240,8 +1278,8 @@ footer {
     </h1>
     <p class="hero-sub">Upload your ML model and get a full vulnerability report - adversarial attacks, privacy risks, model theft, and regulatory compliance mapping.</p>
     <div class="hero-actions">
-      <a href="https://app.orbtech.in" class="btn-primary">
-        Try free audit
+      <a href="#contact" class="btn-primary">
+        Request free audit
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>
       </a>
       <a href="#pricing" class="btn-secondary">View pricing</a>
@@ -1264,7 +1302,7 @@ footer {
       </div>
       <div class="stat-card">
         <div class="stat-num">4</div>
-        <div class="stat-label">Frameworks</div>
+        <div class="stat-label">Regulations</div>
       </div>
     </div>
   </div>
@@ -1278,7 +1316,7 @@ footer {
     <div class="reveal">
       <div class="section-tag">Process</div>
       <h2 class="section-title">How it works</h2>
-      <p class="section-sub">Three steps from model to audit report.</p>
+      <p class="section-sub">Four steps from model to audit report.</p>
     </div>
     <div class="steps">
       <div class="step reveal reveal-delay-1">
@@ -1495,12 +1533,12 @@ footer {
           <li><span class="check-icon">✓</span> PDF report download</li>
           <li><span class="check-icon">✓</span> sklearn, XGBoost, LightGBM, Keras</li>
         </ul>
-        <a href="https://app.orbtech.in" class="price-btn" target="_blank" rel="noopener" style="border-color:rgba(25,128,56,0.5);color:#3FB87A;">Start free</a>
+        <a href="#contact" class="price-btn" style="border-color:rgba(25,128,56,0.5);color:#3FB87A;">Request free audit</a>
       </div>
 
       <!-- Pro -->
-      <div class="price-card featured reveal reveal-delay-2">
-        <div class="featured-label">COMING SOON</div>
+      <div class="price-card reveal reveal-delay-2">
+        <div class="featured-label-muted">COMING SOON</div>
         <div class="price-tier">Pro</div>
         <div class="price-amount">₹2,999</div>
         <div class="price-period">per month</div>
@@ -1511,12 +1549,12 @@ footer {
           <li><span class="check-icon">✓</span> Full scan history</li>
           <li><span class="check-icon">✓</span> Priority support</li>
         </ul>
-        <a href="mailto:security@orbtech.in?subject=Pro Plan Enquiry" class="price-btn featured-btn">Notify me</a>
+        <a href="mailto:security@orbtech.in?subject=Pro Plan Enquiry" class="price-btn">Notify me</a>
       </div>
 
       <!-- Audit -->
       <div class="price-card reveal reveal-delay-3">
-  <div class="featured-label" style="background:var(--bg-3); color:var(--text-2); border:1px solid var(--border-2); box-shadow:none;">COMING SOON</div>
+  <div class="featured-label-muted">COMING SOON</div>
   <div class="price-tier">Manual Audit</div>
         <div class="price-amount">₹25K</div>
         <div class="price-period">one-time</div>
@@ -1612,7 +1650,7 @@ footer {
   <div class="about-avatar">S</div>
   <h3>Shubham Kumar</h3>
   <div class="role">Founder · OrbTech</div>
-  <p>ML engineer and security researcher. Meet OrbTech. Built to solve the gap I kept running into ML models reaching production with zero security testing.</p>
+  <p>ML engineer and security researcher. I built OrbTech to solve a gap I kept running into: ML models reaching production with zero security testing.</p>
   <div class="skill-tags" style="margin-top:22px;">
     <span class="skill-tag">Adversarial ML</span>
     <span class="skill-tag">Security Auditing</span>
@@ -1628,7 +1666,7 @@ footer {
     <div class="reveal">
       <div class="section-tag">Contact</div>
       <h2 class="section-title">Let's talk</h2>
-      <p class="section-sub">Ready to audit your ML model? Get in touch or try it yourself in 60 seconds.</p>
+      <p class="section-sub">Ready to audit your ML model? Fill the form below and get your invite code within 24 hours.</p>
     </div>
     <div class="contact-options reveal">
       <a href="mailto:security@orbtech.in" class="contact-card">
@@ -1675,29 +1713,35 @@ footer {
     </div>
   </div>
 
-  <form class="audit-form" action="https://formspree.io/f/mbdwavbo" method="POST">
+  <div class="form-success" id="form-success" style="display:none; text-align:center; padding:24px 0;">
+    <div style="font-size:2.4rem; margin-bottom:14px; color:#3FB87A;">✓</div>
+    <h4 style="font-size:1.1rem; font-weight:600; margin-bottom:8px; color:var(--text);">Request received!</h4>
+    <p style="font-size:0.875rem; color:var(--text-2); line-height:1.65;">I'll reply from <strong>security@orbtech.in</strong> within 24 hours with your invite code.</p>
+  </div>
+
+  <form class="audit-form" id="audit-form" action="https://formspree.io/f/mbdwavbo" method="POST">
     <!-- Honeypot: hidden from humans, bots fill it and get blocked by Formspree -->
     <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true"
            style="position:absolute; left:-9999px; width:1px; height:1px; opacity:0; pointer-events:none;">
     <div class="field-row">
       <div class="field">
-        <label>Your name <span class="req">*</span></label>
-        <input class="form-input" type="text" name="name" placeholder="Full name" required>
+        <label for="field-name">Your name <span class="req">*</span></label>
+        <input class="form-input" id="field-name" type="text" name="name" placeholder="Full name" required>
       </div>
       <div class="field">
-        <label>Work email <span class="req">*</span></label>
-        <input class="form-input" type="email" name="email" placeholder="you@company.com" required>
+        <label for="field-email">Work email <span class="req">*</span></label>
+        <input class="form-input" id="field-email" type="email" name="email" placeholder="you@company.com" required>
       </div>
     </div>
 
     <div class="field">
-      <label>Company / Project</label>
-      <input class="form-input" type="text" name="company" placeholder="Fintech startup, research project...">
+      <label for="field-company">Company / Project</label>
+      <input class="form-input" id="field-company" type="text" name="company" placeholder="Fintech startup, research project...">
     </div>
 
     <div class="field">
-      <label>Model type</label>
-      <select class="form-input" name="model_type">
+      <label for="field-model">Model type</label>
+      <select class="form-input" id="field-model" name="model_type">
         <option value="">Select model type</option>
         <option>sklearn (.pkl)</option>
         <option>XGBoost (.json)</option>
@@ -1707,11 +1751,11 @@ footer {
     </div>
 
     <div class="field">
-      <label>What does your model do?</label>
-      <textarea class="form-input" name="message" rows="3" placeholder="e.g. Fraud detection model for our payment platform..."></textarea>
+      <label for="field-message">What does your model do?</label>
+      <textarea class="form-input" id="field-message" name="message" rows="3" placeholder="e.g. Fraud detection model for our payment platform..."></textarea>
     </div>
 
-    <button type="submit" class="submit-btn">
+    <button type="submit" class="submit-btn" id="submit-btn">
       Send audit request
       <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>
     </button>
@@ -1735,13 +1779,34 @@ window.addEventListener('scroll', () => {
   navbar.classList.toggle('scrolled', window.scrollY > 40);
 }, { passive: true });
 
+// Mobile menu toggle with accessibility
+function toggleMenu() {
+  const links = document.querySelector('.nav-links');
+  const toggle = document.getElementById('nav-toggle');
+  const isOpen = links.classList.toggle('open');
+  toggle.setAttribute('aria-expanded', isOpen);
+  toggle.setAttribute('aria-label', isOpen ? 'Close menu' : 'Open menu');
+}
+
+// Close mobile menu when a nav link is clicked
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', () => {
+    const links = document.querySelector('.nav-links');
+    const toggle = document.getElementById('nav-toggle');
+    if (links.classList.contains('open')) {
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Open menu');
+    }
+  });
+});
+
 // Scroll reveal
 const revealEls = document.querySelectorAll('.reveal');
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if (e.isIntersecting) {
       e.target.classList.add('visible');
-      // Also trigger report features stagger
       if (e.target.classList.contains('report-mockup')) {
         document.querySelectorAll('.report-feature').forEach((f, i) => {
           setTimeout(() => f.classList.add('visible'), i * 150);
@@ -1757,6 +1822,7 @@ revealEls.forEach(el => observer.observe(el));
 const orbs = document.querySelectorAll('.orb');
 let mouseX = 0, mouseY = 0;
 let currentX = 0, currentY = 0;
+let rafId;
 
 document.addEventListener('mousemove', (e) => {
   mouseX = (e.clientX / window.innerWidth - 0.5) * 40;
@@ -1768,9 +1834,48 @@ function animateOrbs() {
   currentY += (mouseY - currentY) * 0.04;
   orbs[0].style.transform = `translate(${currentX * 0.5}px, ${currentY * 0.5}px)`;
   orbs[1].style.transform = `translate(${-currentX * 0.3}px, ${-currentY * 0.3}px)`;
-  requestAnimationFrame(animateOrbs);
+  rafId = requestAnimationFrame(animateOrbs);
 }
 animateOrbs();
+
+// Pause orb animation when tab is hidden to save CPU
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    cancelAnimationFrame(rafId);
+  } else {
+    animateOrbs();
+  }
+});
+
+// Form AJAX submission with inline success state
+const auditForm = document.getElementById('audit-form');
+const formSuccess = document.getElementById('form-success');
+const submitBtn = document.getElementById('submit-btn');
+
+if (auditForm) {
+  auditForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Sending…';
+    try {
+      const res = await fetch(auditForm.action, {
+        method: 'POST',
+        body: new FormData(auditForm),
+        headers: { 'Accept': 'application/json' }
+      });
+      if (res.ok) {
+        auditForm.style.display = 'none';
+        formSuccess.style.display = 'block';
+      } else {
+        throw new Error('server error');
+      }
+    } catch {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = 'Send audit request <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>';
+      alert('Something went wrong. Please email security@orbtech.in directly.');
+    }
+  });
+}
 </script>
 </body>
 </html>
