@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OrbTech — Feedback Admin</title>
+<link rel="icon" type="image/png" href="logo/orb_tech_icon_512px.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080A0F; --bg-2: #0D1018; --bg-3: #131720;
+  --surface: rgba(255,255,255,0.04); --surface-2: rgba(255,255,255,0.07);
+  --border: rgba(255,255,255,0.08); --border-2: rgba(255,255,255,0.14);
+  --orange: #F25F1F; --orange-dim: rgba(242,95,31,0.15);
+  --text: #F0F2F5; --text-2: #8892A0; --text-3: #68748A;
+  --green: #3FB87A; --red: #EF4444;
+  --mono: 'DM Mono', monospace; --sans: 'Sora', sans-serif;
+  --radius: 14px; --radius-lg: 22px;
+}
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); line-height: 1.6; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+/* ── LOCK SCREEN ── */
+#lock-screen {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  padding: 24px;
+}
+.lock-box {
+  width: 100%; max-width: 400px;
+  background: var(--bg-2); border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg); padding: 44px 40px; text-align: center;
+}
+.lock-icon { font-size: 2rem; margin-bottom: 20px; }
+.lock-box h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 6px; }
+.lock-box p { font-size: 0.82rem; color: var(--text-3); font-family: var(--mono); margin-bottom: 28px; }
+.lock-field { display: flex; flex-direction: column; gap: 8px; text-align: left; margin-bottom: 14px; }
+.lock-field label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-2); letter-spacing: 0.04em; }
+.lock-input {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border-2);
+  border-radius: 9px; padding: 13px 16px; font-size: 0.875rem;
+  color: var(--text); font-family: var(--sans); outline: none;
+  transition: all 0.3s; width: 100%;
+}
+.lock-input::placeholder { color: var(--text-3); }
+.lock-input:focus { border-color: rgba(242,95,31,0.5); box-shadow: 0 0 0 3px rgba(242,95,31,0.08); }
+.lock-btn {
+  width: 100%; background: var(--orange); color: #fff; border: none;
+  cursor: pointer; padding: 13px; border-radius: 10px;
+  font-family: var(--sans); font-weight: 600; font-size: 0.9rem;
+  transition: all 0.3s; margin-top: 8px;
+}
+.lock-btn:hover { background: #D04E12; }
+.lock-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.lock-error { font-size: 0.8rem; color: var(--red); font-family: var(--mono); margin-top: 10px; display: none; }
+
+/* ── ADMIN PANEL ── */
+#admin-panel { display: none; padding: 32px 5% 80px; max-width: 860px; margin: 0 auto; }
+
+.admin-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 36px;
+}
+.admin-logo { display: flex; align-items: center; gap: 10px; }
+.admin-logo img { height: 28px; opacity: 0.8; }
+.admin-title { font-family: var(--mono); font-size: 0.72rem; color: var(--text-3); letter-spacing: 0.1em; text-transform: uppercase; }
+.lock-out-btn {
+  background: none; border: 1px solid var(--border-2); color: var(--text-3);
+  padding: 7px 16px; border-radius: 8px; cursor: pointer; font-family: var(--mono);
+  font-size: 0.72rem; transition: all 0.2s;
+}
+.lock-out-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg-2); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 32px; margin-bottom: 24px;
+}
+.card-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 22px; display: flex; align-items: center; gap: 10px; }
+.card-title span { font-family: var(--mono); font-size: 0.68rem; color: var(--text-3); font-weight: 400; }
+
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field.full { grid-column: 1 / -1; }
+.field label { font-family: var(--mono); font-size: 0.72rem; color: var(--text-2); letter-spacing: 0.04em; }
+.field label .req { color: var(--orange); }
+.form-input {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border-2);
+  border-radius: 9px; padding: 11px 14px; font-size: 0.875rem;
+  color: var(--text); font-family: var(--sans); outline: none;
+  transition: all 0.3s; width: 100%; resize: vertical;
+}
+.form-input::placeholder { color: var(--text-3); }
+.form-input:focus { border-color: rgba(242,95,31,0.5); background: rgba(242,95,31,0.03); box-shadow: 0 0 0 3px rgba(242,95,31,0.08); }
+.add-btn {
+  background: var(--orange); color: #fff; border: none; cursor: pointer;
+  padding: 12px 28px; border-radius: 10px; font-family: var(--sans);
+  font-weight: 600; font-size: 0.875rem; transition: all 0.3s; margin-top: 6px;
+}
+.add-btn:hover { background: #D04E12; }
+.add-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.form-status { font-family: var(--mono); font-size: 0.75rem; margin-top: 10px; display: none; }
+.form-status.ok { color: var(--green); }
+.form-status.err { color: var(--red); }
+
+/* ── FEEDBACK LIST ── */
+#feedback-list { display: flex; flex-direction: column; gap: 14px; }
+.fb-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 20px;
+  display: flex; align-items: flex-start; gap: 16px;
+}
+.fb-item.visible-on { border-left: 3px solid var(--green); }
+.fb-item.visible-off { border-left: 3px solid var(--border-2); }
+.fb-body { flex: 1; min-width: 0; }
+.fb-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.fb-name { font-size: 0.875rem; font-weight: 600; }
+.fb-role { font-family: var(--mono); font-size: 0.7rem; color: var(--text-3); }
+.fb-badge { font-family: var(--mono); font-size: 0.62rem; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.badge-vis { background: rgba(63,184,122,0.12); color: var(--green); border: 1px solid rgba(63,184,122,0.25); }
+.badge-hid { background: rgba(255,255,255,0.05); color: var(--text-3); border: 1px solid var(--border); }
+.fb-quote { font-size: 0.82rem; color: var(--text-2); line-height: 1.65; }
+.fb-actions { display: flex; flex-direction: column; gap: 7px; flex-shrink: 0; }
+.toggle-btn, .del-btn {
+  border: 1px solid var(--border-2); background: none; cursor: pointer;
+  padding: 6px 12px; border-radius: 7px; font-family: var(--mono);
+  font-size: 0.68rem; transition: all 0.2s; white-space: nowrap;
+}
+.toggle-btn { color: var(--text-2); }
+.toggle-btn:hover { border-color: var(--green); color: var(--green); }
+.del-btn { color: var(--text-3); }
+.del-btn:hover { border-color: var(--red); color: var(--red); }
+.fb-empty { font-family: var(--mono); font-size: 0.8rem; color: var(--text-3); text-align: center; padding: 32px 0; }
+.list-loading { font-family: var(--mono); font-size: 0.8rem; color: var(--text-3); text-align: center; padding: 32px 0; }
+
+@media (max-width: 600px) {
+  .lock-box { padding: 32px 24px; }
+  .form-grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: 1; }
+  .fb-item { flex-direction: column; gap: 12px; }
+  .fb-actions { flex-direction: row; }
+  #admin-panel { padding: 24px 4% 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── LOCK SCREEN ────────────────────────────────────── -->
+<div id="lock-screen">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <h2>Feedback Admin</h2>
+    <p>orbtech.in · restricted access</p>
+    <div class="lock-field">
+      <label for="key-input">Password</label>
+      <input class="lock-input" id="key-input" type="password" placeholder="Enter admin password" autocomplete="off">
+    </div>
+    <div class="lock-field" id="svc-field" style="display:none;">
+      <label for="svc-input">Supabase service key <span style="color:var(--text-3);font-weight:400;">(saved to this browser)</span></label>
+      <input class="lock-input" id="svc-input" type="password" placeholder="Paste from Supabase → Settings → API → service_role" autocomplete="off">
+    </div>
+    <p id="lock-hint" style="display:none;font-size:0.75rem;color:var(--text-3);font-family:var(--mono);margin-bottom:12px;text-align:left;">First-time setup — key is saved locally, never re-asked.</p>
+    <button class="lock-btn" id="unlock-btn" onclick="unlock()">Unlock</button>
+    <div class="lock-error" id="lock-error">Incorrect password.</div>
+  </div>
+</div>
+
+<!-- ── ADMIN PANEL ───────────────────────────────────── -->
+<div id="admin-panel">
+  <div class="admin-header">
+    <div class="admin-logo">
+      <img src="logo/orb_tech_logo.png" alt="OrbTech">
+      <div class="admin-title">Feedback Admin</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="lock-out-btn" onclick="forgetKey()" style="font-size:0.65rem;opacity:0.6;">Forget key</button>
+      <button class="lock-out-btn" onclick="lockOut()">Lock out</button>
+    </div>
+  </div>
+
+  <!-- Add feedback form -->
+  <div class="card">
+    <div class="card-title">Add new feedback <span>saved as hidden — you control what shows on the landing page</span></div>
+    <div class="form-grid">
+      <div class="field">
+        <label for="f-name">Name <span class="req">*</span></label>
+        <input class="form-input" id="f-name" type="text" placeholder="Sneha Kapoor">
+      </div>
+      <div class="field">
+        <label for="f-role">Role <span class="req">*</span></label>
+        <input class="form-input" id="f-role" type="text" placeholder="ML Engineer">
+      </div>
+      <div class="field">
+        <label for="f-company">Company</label>
+        <input class="form-input" id="f-company" type="text" placeholder="Razorpay">
+      </div>
+      <div class="field full">
+        <label for="f-quote">Quote <span class="req">*</span></label>
+        <textarea class="form-input" id="f-quote" rows="3" placeholder="Found risks we had zero visibility into. Genuinely useful before our RBI audit."></textarea>
+      </div>
+    </div>
+    <button class="add-btn" id="add-btn" onclick="addFeedback()">Add feedback</button>
+    <div class="form-status" id="form-status"></div>
+  </div>
+
+  <!-- Feedback list -->
+  <div class="card">
+    <div class="card-title">All feedback <span id="count-label"></span></div>
+    <div id="feedback-list"><div class="list-loading">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ────────────────────────────────────────────────
+// SUPABASE_URL is not sensitive — safe to commit.
+// ADMIN_PASSWORD and the service key are NEVER stored in this file.
+//   • Password: hardcoded below as a placeholder — fill it in locally, do not commit.
+//   • Service key: stored in your browser's localStorage on first setup.
+var SUPABASE_URL   = 'https://yvundbsygluaskpdvhup.supabase.co';
+var ADMIN_PASSWORD = 'YOUR_ADMIN_PASSWORD'; // ← set this locally, never commit the real value
+
+// ── STATE ─────────────────────────────────────────────────
+var serviceKey = localStorage.getItem('orbt_svc') || '';
+
+// ── INIT ──────────────────────────────────────────────────
+// If service key is saved and session is active, skip straight to panel
+if (serviceKey && sessionStorage.getItem('orbt_unlocked') === '1') {
+  showPanel();
+// If service key is saved, show password-only screen
+} else if (serviceKey) {
+  showPasswordOnly();
+// First time: show full setup screen (password + service key)
+} else {
+  showSetup();
+}
+
+document.getElementById('key-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') unlock();
+});
+
+// ── SCREEN MODES ──────────────────────────────────────────
+function showPasswordOnly() {
+  document.getElementById('svc-field').style.display = 'none';
+  document.getElementById('lock-error').style.display = 'none';
+}
+
+function showSetup() {
+  document.getElementById('svc-field').style.display = 'flex';
+  document.getElementById('lock-hint').style.display = 'block';
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+function unlock() {
+  var pwd = document.getElementById('key-input').value.trim();
+  var svc = document.getElementById('svc-input').value.trim();
+  document.getElementById('lock-error').style.display = 'none';
+  if (!pwd) return;
+  if (pwd !== ADMIN_PASSWORD) {
+    document.getElementById('lock-error').style.display = 'block';
+    return;
+  }
+  // First-time setup: save service key to localStorage
+  if (!serviceKey) {
+    if (!svc) { document.getElementById('lock-error').textContent = 'Service key required on first setup.'; document.getElementById('lock-error').style.display = 'block'; return; }
+    localStorage.setItem('orbt_svc', svc);
+    serviceKey = svc;
+  }
+  sessionStorage.setItem('orbt_unlocked', '1');
+  showPanel();
+}
+
+function showPanel() {
+  document.getElementById('lock-screen').style.display = 'none';
+  document.getElementById('admin-panel').style.display = 'block';
+  loadFeedback();
+}
+
+function lockOut() {
+  sessionStorage.removeItem('orbt_unlocked');
+  document.getElementById('key-input').value = '';
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('lock-screen').style.display = 'flex';
+  showPasswordOnly();
+}
+
+function forgetKey() {
+  if (!confirm('Remove saved service key? You will need to re-enter it next login.')) return;
+  localStorage.removeItem('orbt_svc');
+  serviceKey = '';
+  showSetup();
+}
+
+// ── API HELPERS ───────────────────────────────────────────
+function apiHeaders(extra) {
+  return Object.assign({
+    'apikey': serviceKey,
+    'Authorization': 'Bearer ' + serviceKey,
+    'Content-Type': 'application/json'
+  }, extra || {});
+}
+
+// ── LOAD FEEDBACK ─────────────────────────────────────────
+function loadFeedback() {
+  var list = document.getElementById('feedback-list');
+  list.innerHTML = '<div class="list-loading">Loading…</div>';
+  fetch(SUPABASE_URL + '/rest/v1/testimonials?order=created_at.desc', {
+    headers: apiHeaders()
+  }).then(function(r) { return r.ok ? r.json() : []; }).then(function(data) {
+    renderList(data);
+  }).catch(function() {
+    list.innerHTML = '<div class="fb-empty">Failed to load. Check your Supabase URL and key.</div>';
+  });
+}
+
+function renderList(data) {
+  var list = document.getElementById('feedback-list');
+  var count = document.getElementById('count-label');
+  count.textContent = data.length ? data.length + ' total' : '';
+  if (!data.length) {
+    list.innerHTML = '<div class="fb-empty">No feedback yet. Add some above.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  data.forEach(function(t) {
+    var company = t.company ? ' · ' + esc(t.company) : '';
+    var visible = t.is_visible;
+    var item = document.createElement('div');
+    item.className = 'fb-item ' + (visible ? 'visible-on' : 'visible-off');
+    item.id = 'fb-' + t.id;
+    item.innerHTML =
+      '<div class="fb-body">' +
+        '<div class="fb-meta">' +
+          '<span class="fb-name">' + esc(t.name) + '</span>' +
+          '<span class="fb-role">' + esc(t.role) + company + '</span>' +
+          '<span class="fb-badge ' + (visible ? 'badge-vis' : 'badge-hid') + '">' +
+            (visible ? 'VISIBLE' : 'HIDDEN') +
+          '</span>' +
+        '</div>' +
+        '<p class="fb-quote">' + esc(t.quote) + '</p>' +
+      '</div>' +
+      '<div class="fb-actions">' +
+        '<button class="toggle-btn" onclick="toggleVisible(\'' + t.id + '\',' + visible + ')">' +
+          (visible ? 'Hide' : 'Show') +
+        '</button>' +
+        '<button class="del-btn" onclick="deleteFeedback(\'' + t.id + '\')">Delete</button>' +
+      '</div>';
+    list.appendChild(item);
+  });
+}
+
+// ── ADD FEEDBACK ──────────────────────────────────────────
+function addFeedback() {
+  var name  = document.getElementById('f-name').value.trim();
+  var role  = document.getElementById('f-role').value.trim();
+  var company = document.getElementById('f-company').value.trim();
+  var quote = document.getElementById('f-quote').value.trim();
+  var status = document.getElementById('form-status');
+
+  if (!name || !role || !quote) {
+    showStatus('Name, role, and quote are required.', false);
+    return;
+  }
+
+  var btn = document.getElementById('add-btn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+
+  var body = { name: name, role: role, quote: quote, is_visible: false };
+  if (company) body.company = company;
+
+  fetch(SUPABASE_URL + '/rest/v1/testimonials', {
+    method: 'POST',
+    headers: apiHeaders({ 'Prefer': 'return=minimal' }),
+    body: JSON.stringify(body)
+  }).then(function(r) {
+    btn.disabled = false; btn.textContent = 'Add feedback';
+    if (r.ok || r.status === 201) {
+      document.getElementById('f-name').value = '';
+      document.getElementById('f-role').value = '';
+      document.getElementById('f-company').value = '';
+      document.getElementById('f-quote').value = '';
+      showStatus('Added! It\'s hidden by default — toggle to show on the landing page.', true);
+      loadFeedback();
+    } else {
+      showStatus('Error adding feedback. Try again.', false);
+    }
+  }).catch(function() {
+    btn.disabled = false; btn.textContent = 'Add feedback';
+    showStatus('Network error. Try again.', false);
+  });
+}
+
+// ── TOGGLE VISIBILITY ─────────────────────────────────────
+function toggleVisible(id, current) {
+  var newVal = !current;
+  fetch(SUPABASE_URL + '/rest/v1/testimonials?id=eq.' + id, {
+    method: 'PATCH',
+    headers: apiHeaders({ 'Prefer': 'return=minimal' }),
+    body: JSON.stringify({ is_visible: newVal })
+  }).then(function(r) {
+    if (r.ok) loadFeedback();
+  }).catch(function() {});
+}
+
+// ── DELETE ────────────────────────────────────────────────
+function deleteFeedback(id) {
+  if (!confirm('Delete this feedback? This cannot be undone.')) return;
+  fetch(SUPABASE_URL + '/rest/v1/testimonials?id=eq.' + id, {
+    method: 'DELETE',
+    headers: apiHeaders()
+  }).then(function(r) {
+    if (r.ok) loadFeedback();
+  }).catch(function() {});
+}
+
+// ── UTILS ─────────────────────────────────────────────────
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function showStatus(msg, ok) {
+  var el = document.getElementById('form-status');
+  el.textContent = msg;
+  el.className = 'form-status ' + (ok ? 'ok' : 'err');
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 5000);
+}
+</script>
+</body>
+</html>

@@ -219,6 +219,17 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
 .reveal-delay-3 { transition-delay: 0.3s; }
 .reveal-delay-4 { transition-delay: 0.4s; }
 
+/* ── TESTIMONIALS ──────────────────────────────────────── */
+.t-strip { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 52px; }
+.t-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 26px 24px; display: flex; flex-direction: column; gap: 18px; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+.t-card:hover { border-color: rgba(242,95,31,0.2); transform: translateY(-2px); background: var(--surface-2); }
+.t-quote { font-size: 0.88rem; color: var(--text-2); line-height: 1.75; flex: 1; position: relative; padding-left: 16px; }
+.t-quote::before { content: ''; position: absolute; left: 0; top: 4px; bottom: 4px; width: 2px; background: var(--orange); border-radius: 2px; opacity: 0.6; }
+.t-author { display: flex; align-items: center; gap: 12px; }
+.t-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--orange); display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: #fff; flex-shrink: 0; letter-spacing: 0.02em; }
+.t-name { font-size: 0.875rem; font-weight: 600; color: var(--text); }
+.t-role { font-family: var(--mono); font-size: 0.68rem; color: var(--text-3); margin-top: 2px; }
+
 @media (max-width: 900px) {
   .report-layout, .about-layout { grid-template-columns: 1fr; gap: 36px; }
   .pricing-grid, .compliance-grid, .steps { grid-template-columns: 1fr; }
@@ -299,6 +310,20 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
     </div>
   </div>
 </section>
+
+<div class="divider"></div>
+
+<section id="testimonials" style="display:none;">
+  <div class="container">
+    <div class="reveal" style="text-align:center;">
+      <div class="section-tag" style="justify-content:center;"><span style="display:inline-block;width:24px;height:1px;background:var(--orange);"></span>Early feedback</div>
+      <h2 class="section-title">What early users say</h2>
+    </div>
+    <div class="t-strip" id="t-strip"></div>
+  </div>
+</section>
+
+<div class="divider"></div>
 
 <section id="checks">
   <div class="container">
@@ -620,6 +645,34 @@ window.addEventListener('load', function() {
   animate();
 
   document.addEventListener('visibilitychange', () => { active = !document.hidden; if (!document.hidden) animate(); });
+
+// ── TESTIMONIALS ──────────────────────────────────────────
+(function() {
+  var SUPABASE_URL = 'https://yvundbsygluaskpdvhup.supabase.co';
+  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2dW5kYnN5Z2x1YXNrcGR2aHVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODE4NzIsImV4cCI6MjA5NTI1Nzg3Mn0.eWgL_vOmb1vH4P-LFsH7xk9KLEBvaOn-VipAnOFmBj8';
+  if (!SUPABASE_URL || SUPABASE_URL.indexOf('YOUR_') === 0) return;
+  fetch(SUPABASE_URL + '/rest/v1/testimonials?is_visible=eq.true&order=created_at.asc', {
+    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
+  }).then(function(r) { return r.ok ? r.json() : []; }).then(function(data) {
+    if (!Array.isArray(data) || !data.length) return;
+    var strip = document.getElementById('t-strip');
+    var section = document.getElementById('testimonials');
+    data.forEach(function(t) {
+      var initials = (t.name || '?').split(' ').map(function(w) { return w[0] || ''; }).join('').slice(0, 2).toUpperCase();
+      var esc = function(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+      var company = t.company ? ' &middot; ' + esc(t.company) : '';
+      var div = document.createElement('div');
+      div.className = 't-card reveal';
+      div.innerHTML = '<p class="t-quote">' + esc(t.quote) + '</p>' +
+        '<div class="t-author"><div class="t-avatar">' + initials + '</div>' +
+        '<div><div class="t-name">' + esc(t.name) + '</div>' +
+        '<div class="t-role">' + esc(t.role) + company + '</div></div></div>';
+      strip.appendChild(div);
+      observer.observe(div);
+    });
+    section.style.display = '';
+  }).catch(function() {});
+})();
 
   window.addEventListener('resize', () => {
     const nW=window.innerWidth, nH=Math.max(section.offsetHeight, window.innerHeight);
