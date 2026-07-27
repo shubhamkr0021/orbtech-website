@@ -52,7 +52,7 @@ nav.scrolled { background: rgba(8,10,15,0.92); }
 .hero-tag { font-family: var(--mono); font-size: 0.72rem; font-weight: 500; color: var(--orange); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 28px; display: flex; align-items: center; justify-content: center; gap: 10px; opacity: 0; animation: fadeSlideUp 0.8s ease 0.1s forwards; }
 .hero-tag::before { content: ''; display: block; width: 32px; height: 1px; background: var(--orange); }
 .hero-tag::after { content: ''; display: block; width: 32px; height: 1px; background: var(--orange); }
-.hero h1 { font-size: clamp(2.8rem, 6vw, 5.2rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 28px; opacity: 0; animation: fadeSlideUp 0.8s ease 0.25s forwards; }
+.hero h1 { font-size: clamp(2.2rem, 4.6vw, 3.9rem); font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; margin-bottom: 28px; opacity: 0; animation: fadeSlideUp 0.8s ease 0.25s forwards; }
 .hero h1 .line { display: block; }
 .hero h1 em { font-style: normal; display: inline-block; background: linear-gradient(90deg, var(--orange) 0%, var(--orange) 40%, #FFD7B5 50%, var(--orange) 60%, var(--orange) 100%); background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; animation: shimmerSlide 2.5s ease-in-out infinite; }
 @keyframes shimmerSlide { 0% { background-position: 150% 0; } 100% { background-position: -50% 0; } }
@@ -364,7 +364,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
           <div class="mockup-row"><span class="row-label">PII Leakage (canary)</span><span class="row-badge badge-high">HIGH · CONFIRMED</span></div>
           <div class="mockup-row"><span class="row-label">Fabricated PII</span><span class="row-badge badge-minimal">TRACKED</span></div>
         </div>
-        <div class="mockup-regs"><span class="reg-pill">OWASP LLM01</span><span class="reg-pill">OWASP LLM06</span><span class="reg-pill">EU AI Act Art.10</span><span class="reg-pill">DPDP Act §8</span></div>
+        <div class="mockup-regs"><span class="reg-pill">OWASP LLM01</span><span class="reg-pill">OWASP LLM02</span><span class="reg-pill">EU AI Act Art.10</span><span class="reg-pill">DPDP Act §8</span></div>
       </div>
     </div>
   </div>
@@ -384,7 +384,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
   <div class="container">
     <div class="reveal" style="text-align:center;"><div class="section-tag" style="justify-content:center;"><span style="display:inline-block;width:24px;height:1px;background:var(--orange);"></span>Regulatory coverage</div><h2 class="section-title">Built for compliance teams</h2><p class="section-sub" style="margin:0 auto;">Every finding mapped to the regulations your legal team is asking about.</p></div>
     <div class="compliance-grid">
-      <div class="compliance-card reveal reveal-delay-2"><span class="compliance-tag">OWASP LLM Top 10</span><h3>LLM Security</h3><p>Prompt injection, sensitive information disclosure and system prompt leakage mapped to the OWASP framework for LLM applications.</p><div class="compliance-articles"><span class="article-pill">LLM01</span><span class="article-pill">LLM02</span><span class="article-pill">LLM06</span><span class="article-pill">LLM07</span></div></div>
+      <div class="compliance-card reveal reveal-delay-2"><span class="compliance-tag">OWASP LLM Top 10</span><h3>LLM Security</h3><p>Prompt injection, sensitive information disclosure and system prompt leakage mapped to the OWASP framework for LLM applications.</p><div class="compliance-articles"><span class="article-pill">LLM01</span><span class="article-pill">LLM02</span><span class="article-pill">LLM07</span></div></div>
       <div class="compliance-card reveal reveal-delay-3"><span class="compliance-tag">EU AI Act 2024</span><h3>AI Act Compliance</h3><p>Maps findings to articles most relevant to high-risk AI systems - risk management, data governance, transparency, and monitoring.</p><div class="compliance-articles"><span class="article-pill">Article 9</span><span class="article-pill">Article 10</span><span class="article-pill">Article 13</span><span class="article-pill">Article 15</span><span class="article-pill">Article 72</span></div></div>
       <div class="compliance-card reveal reveal-delay-4"><span class="compliance-tag">GDPR</span><h3>Data Protection</h3><p>Privacy vulnerabilities like membership inference and model inversion mapped to GDPR obligations helping assess DPIA requirements.</p><div class="compliance-articles"><span class="article-pill">Article 5</span><span class="article-pill">Article 25</span><span class="article-pill">Article 32</span><span class="article-pill">Article 35</span></div></div>
       <div class="compliance-card reveal reveal-delay-3"><span class="compliance-tag">ISO/IEC 42001</span><h3>AI Management System</h3><p>Documented evidence for ISO 42001 clauses covering risk identification, impact assessment, and ongoing monitoring obligations.</p><div class="compliance-articles"><span class="article-pill">Clause 6.1</span><span class="article-pill">Clause 8.4</span><span class="article-pill">Clause 9.1</span></div></div>
