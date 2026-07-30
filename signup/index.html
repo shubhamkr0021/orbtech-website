@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log in — OrbTech</title>
+<title>Sign up — OrbTech</title>
 <link rel="icon" type="image/png" href="../logo/orb_tech_icon_512px.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@ h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom
 .subtitle { font-size: 0.85rem; color: var(--text-2); text-align: center; margin-bottom: 1.75rem; }
 label { display: block; font-size: 0.8rem; color: var(--text-2); margin-bottom: 0.4rem; margin-top: 1rem; }
 label:first-of-type { margin-top: 0; }
-input[type="email"], input[type="password"] {
+input[type="text"], input[type="email"], input[type="password"] {
   width: 100%; padding: 0.7rem 0.9rem; background: var(--bg-2);
   border: 1.5px solid var(--border-2); border-radius: 10px; color: var(--text);
   font-family: var(--sans); font-size: 0.9rem; caret-color: var(--orange);
@@ -48,48 +48,52 @@ button[type="submit"] {
 }
 button[type="submit"]:hover:not(:disabled) { background: #D04E12; }
 button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
-#resend-btn {
-  display: none; width: 100%; margin-top: 0.6rem; padding: 0.6rem 1rem;
-  background: transparent; color: var(--orange); border: 1.5px solid var(--orange);
-  border-radius: 10px; font-family: var(--sans); font-weight: 600; font-size: 0.85rem;
-  cursor: pointer; transition: background 0.2s;
-}
-#resend-btn:hover:not(:disabled) { background: var(--orange-dim); }
 #status { min-height: 1.3em; margin-top: 1rem; font-size: 0.82rem; text-align: center; }
 #status.error { color: #F87171; }
 #status.success { color: #4ADE80; }
-.footer-links { margin-top: 1.5rem; text-align: center; font-size: 0.82rem; color: var(--text-2); display: flex; justify-content: space-between; }
+.footer-links { margin-top: 1.5rem; text-align: center; font-size: 0.82rem; color: var(--text-2); }
 .footer-links a { color: var(--orange); text-decoration: none; font-weight: 600; }
 .footer-links a:hover { text-decoration: underline; }
+/* Honeypot — visually hidden, off-screen, same technique as the landing
+   page's existing _gotcha field. A plain input with no wrapper quirks
+   (unlike a Streamlit component), so absolute positioning alone is
+   sufficient here — verified visually and via bounding-box check. */
+.hp-field { position: absolute; left: -9999px; top: -9999px; width: 1px; height: 1px; opacity: 0; overflow: hidden; pointer-events: none; }
 </style>
 </head>
 <body>
   <div class="card">
     <div class="logo"><img src="../logo/orb_tech_logo.png" alt="OrbTech"></div>
-    <h1>Log in</h1>
-    <p class="subtitle">Welcome back.</p>
+    <h1>Create your account</h1>
+    <p class="subtitle">Sign up to start scanning.</p>
 
-    <form id="login-form" autocomplete="on">
-      <label for="email">Email</label>
+    <form id="signup-form" autocomplete="on">
+      <label for="name">Name</label>
+      <input type="text" id="name" placeholder="Your full name" required autocomplete="name">
+
+      <label for="email">Work email</label>
       <input type="email" id="email" placeholder="you@company.com" required autocomplete="username">
 
       <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+      <input type="password" id="password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
 
-      <button type="submit" id="submit-btn">Log in</button>
-      <button type="button" id="resend-btn">Resend verification email</button>
+      <div class="hp-field" aria-hidden="true">
+        <label for="company">Company</label>
+        <input type="text" id="company" name="company" tabindex="-1" autocomplete="off">
+      </div>
+
+      <button type="submit" id="submit-btn">Sign up</button>
       <div id="status"></div>
     </form>
 
     <div class="footer-links">
-      <a href="../reset-password/">Forgot password?</a>
-      <a href="../signup/">Sign up</a>
+      Already have an account? <a href="../login/">Log in</a>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../js/supabase.js"></script>
   <script src="../js/auth.js"></script>
-  <script>initLoginPage();</script>
+  <script>initSignupPage();</script>
 </body>
 </html>

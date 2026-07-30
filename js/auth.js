@@ -1,51 +1,20 @@
-// js/auth.js — login logic and the session handoff to Streamlit.
+// js/auth.js — shared auth logic used by login/, signup/, and reset-password/.
 //
-// HANDOFF METHOD: short-lived cookie, not a URL query parameter.
-//
-// A bearer token in the URL (?access_token=...) is the simpler option and
-// would also work — Streamlit can read query params natively — but it has
-// real costs: it lands in browser history, in any access/proxy logs in
-// front of the Streamlit app, and could leak via a Referer header if the
-// post-login page ever links out. A cookie avoids all three: it never
-// appears in a URL at all, so there's nothing for history or logs to
-// capture.
-//
-// This isn't free of trade-offs either, and they're worth being explicit
-// about rather than pretending the cookie is a strictly safer choice with
-// no cost:
-//   - It only works because the login page and the Streamlit app share a
-//     registrable domain (orbtech.in / app.orbtech.in in production), so
-//     the cookie can be scoped with Domain=.orbtech.in and the browser
-//     will attach it on the cross-subdomain redirect. If the login page
-//     ever moved to a genuinely different domain, this approach breaks and
-//     a query param (or a server-side redirect that proxies the token)
-//     would be the fallback.
-//   - It cannot be marked HttpOnly, because it's being set from client-side
-//     JS, not a server response header — the token is still readable by
-//     any script running on this page. That means an XSS bug on the LOGIN
-//     page specifically could steal it, exactly as an XSS bug could steal
-//     a URL-embedded token. Neither transport defends against that; only
-//     keeping this page free of injectable content does.
-//   - The cookie is genuinely short-lived (60s) and single-purpose — it is
-//     NOT the long-lived session cookie the Streamlit app uses afterward.
-//     It exists only to survive the one redirect, and Streamlit is
-//     expected to consume and effectively discard it immediately.
+// HANDOFF METHOD (unchanged from the proof slice): a short-lived, same-
+// registrable-domain cookie, not a URL token. See the proof-slice notes
+// below for the full trade-off writeup — repeated briefly here since this
+// file is what actually implements it.
+//   - Avoids browser history / access-log / Referer exposure that a URL
+//     token would have.
+//   - Requires login/signup and the Streamlit app to share a registrable
+//     domain (orbtech.in / app.orbtech.in in production).
+//   - Cannot be HttpOnly (set via client-side JS) — an XSS bug on these
+//     pages could still steal it. That's why these pages are kept
+//     script-minimal: no third-party scripts beyond the Supabase client.
+//   - 60s Max-Age, single-purpose — not the long-lived Streamlit session.
 
-// TEST CONFIG: local Streamlit instance. In production this becomes
-// https://app.orbtech.in.
-//
-// The ?auth_mode=handoff param exists only for this proof slice, so the
-// new verification path stays opt-in and the live invite-code gate is
-// completely untouched. It would go away in a real cutover, where this
-// would just be the default path.
-const STREAMLIT_URL = "http://localhost:8501/?auth_mode=handoff";
-
-// "" = current host only. That's correct for local testing, where both
-// this page and Streamlit are served from "localhost" on different ports —
-// cookies are scoped by host, not port, so no Domain attribute is needed
-// for them to be shared locally. In production, set this to ".orbtech.in"
-// so the cookie is sent on requests to app.orbtech.in too.
-const HANDOFF_COOKIE_DOMAIN = "";
+const STREAMLIT_URL = "http://localhost:8501/?auth_mode=handoff"; // prod: https://app.orbtech.in
+const HANDOFF_COOKIE_DOMAIN = ""; // "" = current host only (local testing). prod: ".orbtech.in"
 
 function setHandoffCookie(token) {
     const secureFlag = location.protocol === "https:" ? "; Secure" : "";
@@ -53,37 +22,286 @@ function setHandoffCookie(token) {
     document.cookie = `orb_handoff_token=${encodeURIComponent(token)}; Path=/; Max-Age=60; SameSite=Lax${secureFlag}${domainFlag}`;
 }
 
-document.getElementById("login-form").addEventListener("submit", async function (e) {
-    e.preventDefault();
+function handoffToStreamlit(accessToken) {
+    setHandoffCookie(accessToken);
+    window.location.href = STREAMLIT_URL;
+}
 
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+// ---- Human-readable error mapping — never show a raw Supabase error. ----
+// Returns the sentinel "UNCONFIRMED" for the one case login.js needs to
+// handle specially (offering a resend-verification action).
+function friendlyAuthError(error) {
+    const msg = ((error && error.message) || "").toLowerCase();
+    if (msg.includes("already registered") || msg.includes("user already registered")) {
+        return "An account with this email already exists. Try logging in instead.";
+    }
+    if (msg.includes("invalid login credentials")) {
+        return "Incorrect email or password.";
+    }
+    if (msg.includes("email not confirmed")) {
+        return "UNCONFIRMED";
+    }
+    if (msg.includes("password") && (msg.includes("least") || msg.includes("short") || msg.includes("weak") || msg.includes("6 characters"))) {
+        return "Password must be at least 6 characters.";
+    }
+    if (msg.includes("rate limit") || msg.includes("too many")) {
+        return "Too many attempts. Please wait a moment and try again.";
+    }
+    if (msg.includes("failed to fetch") || msg.includes("network")) {
+        return "Network error — please check your connection and try again.";
+    }
+    return "Something went wrong. Please try again.";
+}
+
+// ---- If already logged in, don't show the form — hand off immediately. ----
+async function redirectIfAlreadyLoggedIn() {
+    const { data } = await supabaseClient.auth.getSession();
+    if (data.session) {
+        handoffToStreamlit(data.session.access_token);
+        return true;
+    }
+    return false;
+}
+
+async function resendVerification(email) {
+    const { error } = await supabaseClient.auth.resend({ type: "signup", email });
+    return !error;
+}
+
+// ==================================================================
+// LOGIN
+// ==================================================================
+function initLoginPage() {
+    redirectIfAlreadyLoggedIn();
+
+    const form = document.getElementById("login-form");
+    const statusEl = document.getElementById("status");
+    const submitBtn = document.getElementById("submit-btn");
+    const resendBtn = document.getElementById("resend-btn");
+
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+
+        statusEl.textContent = "";
+        statusEl.className = "";
+        resendBtn.style.display = "none";
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Logging in...";
+
+        try {
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                const friendly = friendlyAuthError(error);
+                if (friendly === "UNCONFIRMED") {
+                    statusEl.textContent = "Please verify your email before logging in.";
+                    statusEl.className = "error";
+                    resendBtn.style.display = "inline-block";
+                    resendBtn.dataset.email = email;
+                } else {
+                    statusEl.textContent = friendly;
+                    statusEl.className = "error";
+                }
+                return;
+            }
+            handoffToStreamlit(data.session.access_token);
+        } catch (err) {
+            statusEl.textContent = "Unexpected error. Please try again.";
+            statusEl.className = "error";
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Log in";
+        }
+    });
+
+    resendBtn.addEventListener("click", async function () {
+        const email = this.dataset.email;
+        this.disabled = true;
+        this.textContent = "Sending...";
+        const ok = await resendVerification(email);
+        statusEl.textContent = ok
+            ? "Verification email resent — check your inbox."
+            : "Could not resend right now — please try again shortly.";
+        statusEl.className = ok ? "success" : "error";
+        this.style.display = "none";
+        this.disabled = false;
+        this.textContent = "Resend verification email";
+    });
+}
+
+// ==================================================================
+// SIGNUP
+// ==================================================================
+function initSignupPage() {
+    redirectIfAlreadyLoggedIn();
+
+    const form = document.getElementById("signup-form");
     const statusEl = document.getElementById("status");
     const submitBtn = document.getElementById("submit-btn");
 
-    statusEl.textContent = "";
-    submitBtn.disabled = true;
-    submitBtn.textContent = "Logging in...";
+    form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const name = document.getElementById("name").value.trim();
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value;
+        const honeypot = document.getElementById("company").value;
 
-    try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        statusEl.textContent = "";
+        statusEl.className = "";
 
-        if (error) {
-            statusEl.textContent = "Login failed: " + error.message;
+        if (honeypot.trim()) {
+            // Bot tripped the honeypot — pretend success, create nothing.
+            statusEl.textContent = "Check your email to verify your account.";
+            statusEl.className = "success";
+            form.reset();
             return;
         }
 
-        // Only the token is handed off — never identity or role. Streamlit
-        // independently verifies the token against Supabase and looks up
-        // role from its own database; nothing from this page is trusted.
-        const accessToken = data.session.access_token;
-        setHandoffCookie(accessToken);
+        if (!name) {
+            statusEl.textContent = "Please enter your name.";
+            statusEl.className = "error";
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            statusEl.textContent = "Please enter a valid work email.";
+            statusEl.className = "error";
+            return;
+        }
+        if (password.length < 6) {
+            statusEl.textContent = "Password must be at least 6 characters.";
+            statusEl.className = "error";
+            return;
+        }
 
-        window.location.href = STREAMLIT_URL;
-    } catch (err) {
-        statusEl.textContent = "Unexpected error: " + err.message;
-    } finally {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Log in";
-    }
-});
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Signing up...";
+
+        try {
+            // Name is stored in auth.users.raw_user_meta_data via `data`
+            // below (built-in Supabase behavior — no trigger involved). It
+            // is NOT copied into profiles: that table has no name column
+            // today, and the existing on_auth_user_created trigger already
+            // inserts the profiles row itself, so this signup flow must
+            // not also insert one (primary key collision). See the report
+            // for the follow-up needed if profiles should carry the name.
+            const { error } = await supabaseClient.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: { full_name: name },
+                    emailRedirectTo: window.location.origin + "/login/",
+                },
+            });
+            if (error) {
+                statusEl.textContent = friendlyAuthError(error);
+                statusEl.className = "error";
+                return;
+            }
+            statusEl.textContent = "Check your email to verify your account, then log in.";
+            statusEl.className = "success";
+            form.reset();
+        } catch (err) {
+            statusEl.textContent = "Unexpected error. Please try again.";
+            statusEl.className = "error";
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Sign up";
+        }
+    });
+}
+
+// ==================================================================
+// RESET PASSWORD (two modes on one page)
+// ==================================================================
+function initResetPasswordPage() {
+    const requestSection = document.getElementById("request-section");
+    const updateSection = document.getElementById("update-section");
+    const requestForm = document.getElementById("request-form");
+    const requestStatus = document.getElementById("request-status");
+    const requestSubmitBtn = document.getElementById("request-submit-btn");
+    const updateForm = document.getElementById("update-form");
+    const updateStatus = document.getElementById("update-status");
+    const updateSubmitBtn = document.getElementById("update-submit-btn");
+
+    // The recovery token arrives in the URL FRAGMENT (#access_token=...&
+    // type=recovery), which a server never sees — only client-side JS can
+    // read it. The Supabase JS client parses it automatically on page load
+    // (detectSessionInUrl defaults to true) and fires PASSWORD_RECOVERY
+    // once that session is established. This is the exact mechanism a
+    // server-rendered Streamlit app cannot replicate, which is why this
+    // flow lives here instead.
+    supabaseClient.auth.onAuthStateChange((event, _session) => {
+        if (event === "PASSWORD_RECOVERY") {
+            requestSection.style.display = "none";
+            updateSection.style.display = "block";
+        }
+    });
+
+    requestForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const email = document.getElementById("reset-email").value.trim();
+
+        requestStatus.textContent = "";
+        requestStatus.className = "";
+        requestSubmitBtn.disabled = true;
+        requestSubmitBtn.textContent = "Sending...";
+
+        try {
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + "/reset-password/",
+            });
+            if (error) {
+                requestStatus.textContent = friendlyAuthError(error);
+                requestStatus.className = "error";
+            } else {
+                // Deliberately the same message whether or not the email is
+                // registered — avoids leaking account existence.
+                requestStatus.textContent = "If that email is registered, a reset link has been sent.";
+                requestStatus.className = "success";
+            }
+        } catch (err) {
+            requestStatus.textContent = "Network error — please check your connection and try again.";
+            requestStatus.className = "error";
+        } finally {
+            requestSubmitBtn.disabled = false;
+            requestSubmitBtn.textContent = "Send reset link";
+        }
+    });
+
+    updateForm.addEventListener("submit", async function (e) {
+        e.preventDefault();
+        const newPassword = document.getElementById("new-password").value;
+
+        updateStatus.textContent = "";
+        updateStatus.className = "";
+
+        if (newPassword.length < 6) {
+            updateStatus.textContent = "Password must be at least 6 characters.";
+            updateStatus.className = "error";
+            return;
+        }
+
+        updateSubmitBtn.disabled = true;
+        updateSubmitBtn.textContent = "Updating...";
+
+        try {
+            const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+            if (error) {
+                updateStatus.textContent = friendlyAuthError(error);
+                updateStatus.className = "error";
+                return;
+            }
+            updateStatus.textContent = "Password updated. Redirecting to login...";
+            updateStatus.className = "success";
+            await supabaseClient.auth.signOut();
+            setTimeout(() => { window.location.href = "../login/"; }, 1500);
+        } catch (err) {
+            updateStatus.textContent = "Network error — please check your connection and try again.";
+            updateStatus.className = "error";
+        } finally {
+            updateSubmitBtn.disabled = false;
+            updateSubmitBtn.textContent = "Set new password";
+        }
+    });
+}

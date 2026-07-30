@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Log in — OrbTech</title>
+<title>Reset password — OrbTech</title>
 <link rel="icon" type="image/png" href="../logo/orb_tech_icon_512px.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -32,8 +32,7 @@ body {
 .logo img { height: 32px; width: auto; }
 h1 { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.4rem; text-align: center; }
 .subtitle { font-size: 0.85rem; color: var(--text-2); text-align: center; margin-bottom: 1.75rem; }
-label { display: block; font-size: 0.8rem; color: var(--text-2); margin-bottom: 0.4rem; margin-top: 1rem; }
-label:first-of-type { margin-top: 0; }
+label { display: block; font-size: 0.8rem; color: var(--text-2); margin-bottom: 0.4rem; }
 input[type="email"], input[type="password"] {
   width: 100%; padding: 0.7rem 0.9rem; background: var(--bg-2);
   border: 1.5px solid var(--border-2); border-radius: 10px; color: var(--text);
@@ -48,48 +47,51 @@ button[type="submit"] {
 }
 button[type="submit"]:hover:not(:disabled) { background: #D04E12; }
 button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
-#resend-btn {
-  display: none; width: 100%; margin-top: 0.6rem; padding: 0.6rem 1rem;
-  background: transparent; color: var(--orange); border: 1.5px solid var(--orange);
-  border-radius: 10px; font-family: var(--sans); font-weight: 600; font-size: 0.85rem;
-  cursor: pointer; transition: background 0.2s;
-}
-#resend-btn:hover:not(:disabled) { background: var(--orange-dim); }
-#status { min-height: 1.3em; margin-top: 1rem; font-size: 0.82rem; text-align: center; }
-#status.error { color: #F87171; }
-#status.success { color: #4ADE80; }
-.footer-links { margin-top: 1.5rem; text-align: center; font-size: 0.82rem; color: var(--text-2); display: flex; justify-content: space-between; }
+.status-msg { min-height: 1.3em; margin-top: 1rem; font-size: 0.82rem; text-align: center; }
+.status-msg.error { color: #F87171; }
+.status-msg.success { color: #4ADE80; }
+.footer-links { margin-top: 1.5rem; text-align: center; font-size: 0.82rem; color: var(--text-2); }
 .footer-links a { color: var(--orange); text-decoration: none; font-weight: 600; }
 .footer-links a:hover { text-decoration: underline; }
+#update-section { display: none; }
 </style>
 </head>
 <body>
   <div class="card">
     <div class="logo"><img src="../logo/orb_tech_logo.png" alt="OrbTech"></div>
-    <h1>Log in</h1>
-    <p class="subtitle">Welcome back.</p>
 
-    <form id="login-form" autocomplete="on">
-      <label for="email">Email</label>
-      <input type="email" id="email" placeholder="you@company.com" required autocomplete="username">
+    <!-- Mode A: request a reset link -->
+    <div id="request-section">
+      <h1>Reset password</h1>
+      <p class="subtitle">We'll email you a reset link.</p>
+      <form id="request-form" autocomplete="on">
+        <label for="reset-email">Email</label>
+        <input type="email" id="reset-email" placeholder="you@company.com" required autocomplete="username">
+        <button type="submit" id="request-submit-btn">Send reset link</button>
+        <div id="request-status" class="status-msg"></div>
+      </form>
+      <div class="footer-links">
+        <a href="../login/">← Back to login</a>
+      </div>
+    </div>
 
-      <label for="password">Password</label>
-      <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
-
-      <button type="submit" id="submit-btn">Log in</button>
-      <button type="button" id="resend-btn">Resend verification email</button>
-      <div id="status"></div>
-    </form>
-
-    <div class="footer-links">
-      <a href="../reset-password/">Forgot password?</a>
-      <a href="../signup/">Sign up</a>
+    <!-- Mode B: shown automatically once the recovery link's session is
+         established (PASSWORD_RECOVERY event) — see js/auth.js -->
+    <div id="update-section">
+      <h1>Set a new password</h1>
+      <p class="subtitle">You're verified — choose a new password to finish.</p>
+      <form id="update-form" autocomplete="off">
+        <label for="new-password">New password</label>
+        <input type="password" id="new-password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
+        <button type="submit" id="update-submit-btn">Set new password</button>
+        <div id="update-status" class="status-msg"></div>
+      </form>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
   <script src="../js/supabase.js"></script>
   <script src="../js/auth.js"></script>
-  <script>initLoginPage();</script>
+  <script>initResetPasswordPage();</script>
 </body>
 </html>
