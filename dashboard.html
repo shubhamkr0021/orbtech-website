@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard · OrbTech</title>
+
+<!--
+  ============================================================================
+  OrbTech Dashboard — HOME (Phase C, page 1 of 4)
+  ----------------------------------------------------------------------------
+  Reads Supabase directly with the USER'S OWN session (anon key + user JWT).
+  RLS policies (Step 2) do the scoping — this page never uses the service key.
+
+  Phase C wiring: this page is the hub between login and Streamlit. It uses
+  the SAME shared Supabase client as login/signup/reset-password (js/supabase.js
+  — no separate client, no separate key) and reuses js/auth.js's
+  setHandoffCookie()/handoffToStreamlit()/STREAMLIT_URL unchanged for the
+  "Start new scan" action — the handoff cookie is minted here now, not at
+  login. See init()/bootstrapSession() below for the logged-out redirect, and
+  the #new-scan click handler for the fail-closed session check at launch.
+  ============================================================================
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+
+<style>
+  :root {
+    --orange:      #F25F1F;
+    --orange-dim:  #C94A12;
+    --ink:         #14110E;   /* near-black warm, page text */
+    --paper:       #FBF7F2;   /* warm off-white page bg */
+    --card:        #FFFFFF;
+    --line:        #E7DFD5;   /* hairline warm grey */
+    --muted:       #7A6F63;   /* secondary text */
+    --ok:          #2E7D32;
+    --warn:        #B26A00;
+    --danger:      #C62828;
+    --radius:      14px;
+    --shadow:      0 1px 2px rgba(20,17,14,.04), 0 8px 24px rgba(20,17,14,.05);
+  }
+
+  @font-face { font-family:"Sora"; font-display:swap; src:local("Sora"); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Sora", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  .mono { font-family: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+
+  a { color: inherit; }
+
+  /* ---- top bar ---- */
+  header.topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 18px 28px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+    position: sticky; top:0; z-index: 10;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-.01em; }
+  .brand .dot {
+    width:11px; height:11px; border-radius:50%;
+    background: var(--orange);
+    box-shadow: 0 0 0 4px rgba(242,95,31,.14);
+  }
+  nav.tabs { display:flex; gap:4px; }
+  nav.tabs a {
+    text-decoration:none; color:var(--muted); font-size:14px; font-weight:600;
+    padding:8px 14px; border-radius:9px;
+  }
+  nav.tabs a[aria-current="page"] { color:var(--ink); background:var(--paper); }
+  nav.tabs a:hover { color:var(--ink); }
+  .whoami { display:flex; align-items:center; gap:12px; font-size:14px; color:var(--muted); }
+  .signout {
+    font-size:13px; font-weight:600; color:var(--muted);
+    background:none; border:1px solid var(--line); border-radius:8px;
+    padding:7px 12px; cursor:pointer;
+  }
+  .signout:hover { color:var(--ink); border-color:var(--muted); }
+
+  /* ---- layout ---- */
+  main { max-width: 980px; margin: 0 auto; padding: 34px 28px 80px; }
+
+  .welcome { margin: 4px 0 26px; }
+  .welcome h1 { font-size: 26px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px; }
+  .welcome p  { margin:0; color:var(--muted); font-size:15px; }
+
+  .grid { display:grid; grid-template-columns: 1.15fr 1fr; gap:18px; }
+  @media (max-width: 760px){ .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow);
+    padding:22px;
+  }
+  .card h2 {
+    font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 16px;
+  }
+
+  /* plan + usage */
+  .plan-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; }
+  .plan-name { font-size:22px; font-weight:700; }
+  .plan-badge {
+    font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    padding:4px 9px; border-radius:999px;
+  }
+  .plan-badge.free { background:#F3ECE3; color:var(--muted); }
+  .plan-badge.pro  { background:rgba(242,95,31,.12); color:var(--orange-dim); }
+
+  .usage-num { font-size:34px; font-weight:700; letter-spacing:-.02em; }
+  .usage-num .of { color:var(--muted); font-weight:600; font-size:22px; }
+  .usage-label { color:var(--muted); font-size:13px; margin-top:2px; }
+
+  .meter { height:8px; background:#F0E9E0; border-radius:999px; overflow:hidden; margin-top:16px; }
+  .meter > span { display:block; height:100%; background:var(--orange); border-radius:999px; transition:width .4s ease; }
+  .meter.full > span { background:var(--danger); }
+
+  .quota-note { margin-top:14px; font-size:13px; }
+  .quota-note.exceeded { color:var(--danger); font-weight:600; }
+  .quota-note .up { color:var(--orange-dim); font-weight:700; text-decoration:none; }
+  .quota-note .up:hover { text-decoration:underline; }
+
+  /* recent scores */
+  .scores { display:flex; flex-direction:column; gap:10px; }
+  .score-row { display:flex; align-items:center; gap:12px; }
+  .score-row .bar-track { flex:1; height:26px; background:#F4EDE4; border-radius:7px; overflow:hidden; position:relative; }
+  .score-row .bar-fill { height:100%; border-radius:7px; }
+  .score-row .bar-fill.low   { background:#2E7D32; }
+  .score-row .bar-fill.med   { background:#C98A00; }
+  .score-row .bar-fill.high  { background:#C62828; }
+  .score-row .sc-val { position:absolute; right:8px; top:50%; transform:translateY(-50%);
+                        font-size:12px; font-weight:700; color:var(--ink); }
+  .score-row .sc-meta { width:120px; font-size:12px; color:var(--muted); flex-shrink:0; }
+  .score-row .sc-meta b { color:var(--ink); font-weight:600; display:block;
+                          white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* recent reports */
+  .rep { display:flex; align-items:center; justify-content:space-between;
+         padding:12px 0; border-bottom:1px solid var(--line); }
+  .rep:last-child { border-bottom:none; }
+  .rep .l { display:flex; align-items:center; gap:12px; min-width:0; }
+  .rep .type-pill {
+    font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    padding:3px 7px; border-radius:6px; flex-shrink:0;
+  }
+  .rep .type-pill.ml  { background:#EAF1F7; color:#33607F; }
+  .rep .type-pill.llm { background:rgba(242,95,31,.10); color:var(--orange-dim); }
+  .rep .name { font-size:14px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rep .date { font-size:12px; color:var(--muted); flex-shrink:0; }
+  .rep .score { font-size:13px; font-weight:700; }
+  .rep .score.low{color:var(--ok)} .rep .score.med{color:var(--warn)} .rep .score.high{color:var(--danger)}
+
+  .full-width { grid-column: 1 / -1; }
+
+  /* cta */
+  .cta-row { display:flex; gap:12px; align-items:center; margin-top:22px; }
+  .btn-primary {
+    background:var(--orange); color:#fff; text-decoration:none;
+    font-size:15px; font-weight:700; padding:13px 22px; border-radius:11px;
+    box-shadow: 0 2px 8px rgba(242,95,31,.28); display:inline-block;
+  }
+  .btn-primary:hover { background:var(--orange-dim); }
+  .btn-primary[aria-disabled="true"] {
+    background:#E4D9CC; color:#9A8C7C; box-shadow:none; cursor:not-allowed; pointer-events:none;
+  }
+
+  /* states */
+  .empty { color:var(--muted); font-size:14px; padding:6px 0; }
+  .loading-shimmer {
+    color:transparent; background:linear-gradient(90deg,#EFE8DF,#F7F1E9,#EFE8DF);
+    background-size:200% 100%; animation:sh 1.2s infinite; border-radius:6px;
+  }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .banner {
+    max-width:980px; margin:18px auto 0; padding:14px 18px; border-radius:12px;
+    font-size:14px; display:none;
+  }
+  .banner.error   { background:#FCEBEA; color:var(--danger); border:1px solid #F3C9C6; display:block; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> OrbTech</div>
+  <nav class="tabs">
+    <a href="dashboard.html" aria-current="page">Home</a>
+    <a href="reports.html">Reports</a>
+    <a href="profile.html">Profile</a>
+    <a href="billing.html">Billing</a>
+  </nav>
+  <div class="whoami">
+    <span id="whoami-email" class="loading-shimmer">loading@…</span>
+    <button class="signout" id="signout">Sign out</button>
+  </div>
+</header>
+
+<div class="banner" id="err-banner"></div>
+
+<main>
+  <div class="welcome">
+    <h1 id="welcome-line" class="loading-shimmer">Welcome back</h1>
+    <p>Here's where your account and scans stand.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- Plan + Usage -->
+    <section class="card" aria-labelledby="h-plan">
+      <h2 id="h-plan">Plan &amp; usage</h2>
+      <div class="plan-row">
+        <span class="plan-name" id="plan-name">—</span>
+        <span class="plan-badge free" id="plan-badge">—</span>
+      </div>
+      <div class="usage-num" id="usage-num">—</div>
+      <div class="usage-label" id="usage-label">scans used</div>
+      <div class="meter" id="meter"><span id="meter-fill" style="width:0%"></span></div>
+      <div class="quota-note" id="quota-note"></div>
+    </section>
+
+    <!-- Recent scores (NOT a trend line — separate scans, honestly shown) -->
+    <section class="card" aria-labelledby="h-scores">
+      <h2 id="h-scores">Recent scores</h2>
+      <div class="scores" id="scores"><div class="empty">Loading…</div></div>
+    </section>
+
+    <!-- Recent reports (preview; full list on Reports page) -->
+    <section class="card full-width" aria-labelledby="h-rep">
+      <h2 id="h-rep">Recent reports</h2>
+      <div id="reports"><div class="empty">Loading…</div></div>
+      <div class="cta-row">
+        <a href="#" class="btn-primary" id="new-scan">Start new scan</a>
+        <a href="reports.html" style="font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;">View all reports →</a>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script>
+/* ============================================================================
+   CONFIG
+   supabaseClient comes from js/supabase.js (shared with login/signup/reset-
+   password — same anon key, same project, no separate client here).
+   STREAMLIT_URL / setHandoffCookie() / handoffToStreamlit() come from
+   js/auth.js — reused as-is for "Start new scan", not reimplemented.
+   ============================================================================ */
+const LOGIN_URL = "login/"; // where a logged-out visitor goes
+
+/* Phase B quota constants — MUST match the scanner exactly or the two disagree */
+const FREE_LIMIT = 1;    // lifetime, combined ML+LLM
+const PRO_LIMIT  = 100;  // per calendar month (UTC)
+
+const $ = (id) => document.getElementById(id);
+function showError(msg){
+  const b=$("err-banner");
+  b.textContent = msg;
+  b.classList.add("error"); // .banner.error{display:block;...} — banner is
+                             // display:none until this fires; no inline
+                             // style needed, the class carries both the
+                             // visibility and the error styling.
+}
+function clearShimmer(el){ el.classList.remove("loading-shimmer"); }
+
+/* First UTC moment of the current calendar month — mirrors Phase B's
+   date_trunc('month', now() at time zone 'UTC') boundary. */
+function monthStartUTCISO(){
+  const n = new Date();
+  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), 1, 0,0,0)).toISOString();
+}
+
+function scoreClass(v){ if (v==null) return "med"; if (v<34) return "low"; if (v<67) return "med"; return "high"; }
+function fmtDate(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+}
+
+/* ----------------------------------------------------------------------------
+   Session bootstrap.
+   getSession() works here because the dashboard shares the same
+   supabaseClient (same anon key, same localStorage-backed session) as the
+   login page that authenticated via signInWithPassword() — no separate
+   restore/setSession() step needed; that's a genuinely different case (a
+   one-shot handoff *token*, not a shared client) and doesn't apply here.
+---------------------------------------------------------------------------- */
+async function bootstrapSession(){
+  const { data:{ session }, error } = await supabaseClient.auth.getSession();
+  if (error) { showError("Couldn't verify your session. Please sign in again."); return null; }
+  if (!session) { window.location.href = LOGIN_URL; return null; }   // fail closed → login
+  return session;
+}
+
+async function loadProfile(userId){
+  // RLS: profiles_select_own restricts this to the caller's own row.
+  const { data, error } = await supabaseClient
+    .from("profiles").select("name,email,plan").eq("id", userId).single();
+  if (error) throw error;
+  return data;
+}
+
+async function countUsage(plan){
+  const monthly = plan === "pro";
+  const since = monthly ? monthStartUTCISO() : null;
+
+  // head+count → returns the count without pulling rows. RLS scopes to the user.
+  const q = (table) => {
+    let b = supabaseClient.from(table).select("id", { count:"exact", head:true });
+    if (since) b = b.gte("timestamp", since);
+    return b;
+  };
+  const [ml, llm] = await Promise.all([ q("scans"), q("llm_scans") ]);
+  if (ml.error)  throw ml.error;
+  if (llm.error) throw llm.error;
+  return (ml.count || 0) + (llm.count || 0);
+}
+
+async function loadRecent(){
+  // A few most-recent rows from each table, merged. RLS scopes to the user.
+  const sel = (t) => supabaseClient.from(t)
+    .select("*").order("timestamp",{ascending:false}).limit(5);
+  const [ml, llm] = await Promise.all([ sel("scans"), sel("llm_scans") ]);
+  if (ml.error)  throw ml.error;
+  if (llm.error) throw llm.error;
+
+  const norm = [];
+  for (const r of (ml.data||[])) {
+    norm.push({ kind:"ML", when:r.timestamp, target:r.model_name || "ML model",
+                score: (r.risk_score!=null ? Number(r.risk_score) : null) });
+  }
+  for (const r of (llm.data||[])) {
+    // llm_scans has NO full_results column -- the overall score is the flat
+    // overall_score column, confirmed against the live schema: a real
+    // numeric type, same 0-100 scale as scans.risk_score (both are
+    // int(round(percentage)) -- see database.py's _llm_scan_result_fields
+    // and llm_checks.py's _compute_overall), so scoreClass()'s thresholds
+    // apply directly with no separate scale to account for.
+    norm.push({ kind:"LLM", when:r.timestamp, target:r.endpoint_name || r.model_name || "LLM endpoint",
+                score: (r.overall_score!=null ? Number(r.overall_score) : null) });
+  }
+  norm.sort((a,b)=> new Date(b.when) - new Date(a.when));
+  return norm;
+}
+
+/* ---- renderers ---- */
+function renderPlanUsage(plan, used){
+  const isPro = plan === "pro";
+  const limit = isPro ? PRO_LIMIT : FREE_LIMIT;
+
+  $("plan-name").textContent = isPro ? "Pro" : "Free";
+  const badge = $("plan-badge");
+  badge.textContent = isPro ? "Pro" : "Free";
+  badge.className = "plan-badge " + (isPro ? "pro" : "free");
+
+  $("usage-num").innerHTML = `${used}<span class="of"> / ${limit}</span>`;
+  $("usage-label").textContent = isPro ? "scans this month" : "lifetime scan";
+
+  const pct = Math.min(100, Math.round((used/limit)*100));
+  const meter = $("meter");
+  $("meter-fill").style.width = pct + "%";
+  meter.classList.toggle("full", used >= limit);
+
+  const note = $("quota-note");
+  const remaining = limit - used;
+  if (remaining <= 0){
+    note.className = "quota-note exceeded";
+    note.innerHTML = isPro
+      ? `You've used all ${limit} scans this month. Resets on the 1st.`
+      : `You've used your free scan. <a class="up" href="billing.html">Upgrade to Pro</a> for 100 scans a month.`;
+    const b = $("new-scan"); b.setAttribute("aria-disabled","true"); b.textContent = "Scan limit reached";
+  } else {
+    note.className = "quota-note";
+    note.textContent = isPro
+      ? `${remaining} of ${limit} scans left this month.`
+      : `${remaining} free scan remaining.`;
+  }
+}
+
+function renderScores(rows){
+  const el = $("scores");
+  const scored = rows.filter(r => r.score != null).slice(0, 6);
+  if (!scored.length){ el.innerHTML = `<div class="empty">No scored scans yet.</div>`; return; }
+  el.innerHTML = "";
+  for (const r of scored){
+    const cls = scoreClass(r.score);
+    const row = document.createElement("div");
+    row.className = "score-row";
+    row.innerHTML = `
+      <div class="sc-meta"><b>${escapeHtml(r.target)}</b>${r.kind}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:${Math.max(4,Math.min(100,r.score))}%"></div>
+        <span class="sc-val">${r.score}</span>
+      </div>`;
+    el.appendChild(row);
+  }
+}
+
+function renderReports(rows){
+  const el = $("reports");
+  const recent = rows.slice(0, 5);
+  if (!recent.length){
+    el.innerHTML = `<div class="empty">No scans yet. Your first report will show up here.</div>`;
+    return;
+  }
+  el.innerHTML = "";
+  for (const r of recent){
+    const cls = scoreClass(r.score);
+    const div = document.createElement("div");
+    div.className = "rep";
+    div.innerHTML = `
+      <div class="l">
+        <span class="type-pill ${r.kind.toLowerCase()}">${r.kind}</span>
+        <span class="name">${escapeHtml(r.target)}</span>
+      </div>
+      <div class="l" style="gap:18px">
+        <span class="date">${fmtDate(r.when)}</span>
+        <span class="score ${cls}">${r.score==null ? "—" : r.score}</span>
+      </div>`;
+    el.appendChild(div);
+  }
+}
+
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ---- boot ---- */
+(async function init(){
+  if (typeof supabaseClient === "undefined"){
+    showError("Supabase library didn't load. Check your connection and reload.");
+    return;
+  }
+  $("signout").addEventListener("click", async ()=>{
+    await supabaseClient.auth.signOut();
+    window.location.href = LOGIN_URL;
+  });
+
+  // "Start new scan" mints the handoff cookie HERE, from the live session at
+  // click time — not reused from login (login no longer sets it; see
+  // js/auth.js). Fail closed: if there's no live session right now (expired
+  // while this tab sat idle), go to login, never to Streamlit with a
+  // missing/stale cookie — that would dump the user on the scanner with a
+  // handoff Streamlit can't accept, which reads as a confusing dead end
+  // rather than a clear "please log in again."
+  $("new-scan").addEventListener("click", async (e) => {
+    e.preventDefault();
+    const { data: { session: liveSession }, error } = await supabaseClient.auth.getSession();
+    if (error || !liveSession) {
+      window.location.href = LOGIN_URL;
+      return;
+    }
+    handoffToStreamlit(liveSession.access_token);
+  });
+
+  const session = await bootstrapSession();
+  if (!session) return;
+
+  const user = session.user;
+  clearShimmer($("whoami-email"));
+  $("whoami-email").textContent = user.email || "";
+
+  try {
+    const profile = await loadProfile(user.id);
+    const displayName = (profile.name && profile.name.trim())
+      ? profile.name.trim()
+      : (profile.email || user.email || "there").split("@")[0];
+    clearShimmer($("welcome-line"));
+    $("welcome-line").textContent = `Welcome back, ${displayName}`;
+
+    const plan = (profile.plan || "free").toLowerCase();
+    const [used, recent] = await Promise.all([ countUsage(plan), loadRecent() ]);
+
+    renderPlanUsage(plan, used);
+    renderScores(recent);
+    renderReports(recent);
+  } catch (e) {
+    // Never render a fake-safe state. Surface the failure, don't show zeros as if real.
+    console.error(e);
+    showError("Couldn't load your dashboard data. Please refresh, or sign in again if this continues.");
+    clearShimmer($("welcome-line"));
+    $("welcome-line").textContent = "Welcome back";
+  }
+})();
+</script>
+</body>
+</html>

@@ -53,11 +53,15 @@ function friendlyAuthError(error) {
     return "Something went wrong. Please try again.";
 }
 
-// ---- If already logged in, don't show the form — hand off immediately. ----
+// ---- If already logged in, don't show the form — go straight to the
+// dashboard (the hub between login and Streamlit as of Phase C). Shared by
+// both login and signup: a logged-in visitor to either has no reason to see
+// an auth form, and the dashboard is now the correct "you're already in"
+// destination for both, not Streamlit directly. ----
 async function redirectIfAlreadyLoggedIn() {
     const { data } = await supabaseClient.auth.getSession();
     if (data.session) {
-        handoffToStreamlit(data.session.access_token);
+        window.location.href = "../dashboard.html";
         return true;
     }
     return false;
@@ -105,7 +109,11 @@ function initLoginPage() {
                 }
                 return;
             }
-            handoffToStreamlit(data.session.access_token);
+            // Phase C: login lands on the dashboard, not Streamlit directly.
+            // The handoff (setHandoffCookie/handoffToStreamlit) now happens
+            // from the dashboard's "Start new scan" action instead — see
+            // dashboard.html.
+            window.location.href = "../dashboard.html";
         } catch (err) {
             statusEl.textContent = "Unexpected error. Please try again.";
             statusEl.className = "error";
