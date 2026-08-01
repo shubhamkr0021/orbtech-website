@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reports · OrbTech</title>
+
+<!--
+  ============================================================================
+  OrbTech Dashboard — REPORTS (Phase C, page 2 of 4)
+  ----------------------------------------------------------------------------
+  Uses the SHARED client from js/supabase.js (same as login/dashboard).
+  Reads scans + llm_scans through the user's own session; RLS scopes them.
+  Downloads: creates a SHORT-LIVED SIGNED URL on click (nothing pre-fetched),
+  via the user's session, from the private scan-reports bucket. Storage RLS
+  (Part 1) means even a leaked path grants nothing to another user.
+  Rows with report_path = NULL (pre-feature scans, upload failures) render a
+  disabled "Report unavailable" state — honest about the record existing
+  while the PDF is not retrievable.
+  ============================================================================
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+
+<style>
+  :root {
+    --orange:#F25F1F; --orange-dim:#C94A12;
+    --ink:#14110E; --paper:#FBF7F2; --card:#FFFFFF;
+    --line:#E7DFD5; --muted:#7A6F63;
+    --ok:#2E7D32; --warn:#B26A00; --danger:#C62828;
+    --radius:14px; --shadow:0 1px 2px rgba(20,17,14,.04), 0 8px 24px rgba(20,17,14,.05);
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    background:var(--paper); color:var(--ink);
+    font-family:"Sora", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  a { color:inherit; }
+
+  header.topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 28px; border-bottom:1px solid var(--line);
+    background:var(--card); position:sticky; top:0; z-index:10;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-.01em; }
+  .brand .dot { width:11px; height:11px; border-radius:50%; background:var(--orange);
+    box-shadow:0 0 0 4px rgba(242,95,31,.14); }
+  nav.tabs { display:flex; gap:4px; }
+  nav.tabs a { text-decoration:none; color:var(--muted); font-size:14px; font-weight:600;
+    padding:8px 14px; border-radius:9px; }
+  nav.tabs a[aria-current="page"] { color:var(--ink); background:var(--paper); }
+  nav.tabs a:hover { color:var(--ink); }
+  .whoami { display:flex; align-items:center; gap:12px; font-size:14px; color:var(--muted); }
+  .signout { font-size:13px; font-weight:600; color:var(--muted);
+    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px; cursor:pointer; }
+  .signout:hover { color:var(--ink); border-color:var(--muted); }
+
+  main { max-width:980px; margin:0 auto; padding:34px 28px 80px; }
+  .head { margin:4px 0 24px; }
+  .head h1 { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px; }
+  .head p { margin:0; color:var(--muted); font-size:15px; }
+
+  .card { background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+
+  /* table-ish list */
+  .rowhead, .row {
+    display:grid; grid-template-columns: 78px 1fr 92px 96px 150px;
+    align-items:center; gap:14px; padding:14px 20px;
+  }
+  .rowhead {
+    font-size:11px; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+    color:var(--muted); border-bottom:1px solid var(--line); background:#FCFAF7;
+  }
+  .row { border-bottom:1px solid var(--line); font-size:14px; }
+  .row:last-child { border-bottom:none; }
+  .row:hover { background:#FDFBF8; }
+
+  .type-pill { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    padding:3px 8px; border-radius:6px; text-align:center; width:fit-content; }
+  .type-pill.ml  { background:#EAF1F7; color:#33607F; }
+  .type-pill.llm { background:rgba(242,95,31,.10); color:var(--orange-dim); }
+
+  .target { font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .date { color:var(--muted); font-size:13px; }
+  .score { font-weight:700; }
+  .score.low{color:var(--ok)} .score.med{color:var(--warn)} .score.high{color:var(--danger)}
+  .score.none{color:var(--muted); font-weight:600;}
+
+  .dl {
+    font-size:13px; font-weight:600; padding:8px 14px; border-radius:9px;
+    border:1px solid var(--line); background:var(--card); color:var(--ink);
+    cursor:pointer; text-align:center; white-space:nowrap;
+  }
+  .dl:hover { border-color:var(--orange); color:var(--orange-dim); }
+  .dl:disabled, .dl[aria-disabled="true"] {
+    color:var(--muted); border-color:var(--line); background:#F7F2EC;
+    cursor:not-allowed; pointer-events:none; font-weight:500;
+  }
+  .dl.working { color:var(--muted); pointer-events:none; }
+
+  .empty { padding:48px 20px; text-align:center; color:var(--muted); }
+  .empty b { display:block; color:var(--ink); font-weight:600; margin-bottom:6px; font-size:16px; }
+  .empty a { color:var(--orange-dim); font-weight:700; text-decoration:none; }
+
+  .skeleton .row { pointer-events:none; }
+  .shimmer { color:transparent; background:linear-gradient(90deg,#EFE8DF,#F7F1E9,#EFE8DF);
+    background-size:200% 100%; animation:sh 1.2s infinite; border-radius:6px; }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .banner { max-width:980px; margin:18px auto 0; padding:14px 18px; border-radius:12px; font-size:14px; }
+  .banner.error { background:#FCEBEA; color:var(--danger); border:1px solid #F3C9C6; }
+
+  @media (max-width:640px){
+    .rowhead { display:none; }
+    .row { grid-template-columns: 1fr auto; grid-auto-rows:min-content; gap:6px 12px; }
+    .row .type-pill { grid-row:1; }
+    .row .target { grid-column:1 / -1; grid-row:2; }
+    .row .date { grid-row:3; grid-column:1; }
+    .row .score { grid-row:3; grid-column:2; text-align:right; }
+    .row .dl { grid-column:1 / -1; grid-row:4; margin-top:6px; }
+  }
+  @media (prefers-reduced-motion: reduce){ * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> OrbTech</div>
+  <nav class="tabs">
+    <a href="dashboard.html">Home</a>
+    <a href="reports.html" aria-current="page">Reports</a>
+    <a href="profile.html">Profile</a>
+    <a href="billing.html">Billing</a>
+  </nav>
+  <div class="whoami">
+    <span id="whoami-email" class="shimmer">loading@…</span>
+    <button class="signout" id="signout">Sign out</button>
+  </div>
+</header>
+
+<div id="err-slot"></div>
+
+<main>
+  <div class="head">
+    <h1>Reports</h1>
+    <p>Every scan you've run, newest first. Download the exact report that was generated.</p>
+  </div>
+
+  <div class="card">
+    <div class="rowhead">
+      <span>Type</span><span>Target</span><span>Date</span><span>Score</span><span></span>
+    </div>
+    <div id="list" class="skeleton">
+      <div class="row"><span class="type-pill shimmer">··</span><span class="target shimmer">loading…</span><span class="date shimmer">···</span><span class="score shimmer">··</span><span class="dl shimmer">···</span></div>
+      <div class="row"><span class="type-pill shimmer">··</span><span class="target shimmer">loading…</span><span class="date shimmer">···</span><span class="score shimmer">··</span><span class="dl shimmer">···</span></div>
+      <div class="row"><span class="type-pill shimmer">··</span><span class="target shimmer">loading…</span><span class="date shimmer">···</span><span class="score shimmer">··</span><span class="dl shimmer">···</span></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const REPORTS_BUCKET = "scan-reports";
+const LOGIN_URL = "login/";
+const SIGNED_URL_TTL = 60; // seconds — short-lived, generated on click
+
+const $ = (id) => document.getElementById(id);
+function showError(msg){
+  $("err-slot").innerHTML = `<div class="banner error">${msg}</div>`;
+}
+function scoreClass(v){ if (v==null) return "none"; if (v<34) return "low"; if (v<67) return "med"; return "high"; }
+function fmtDate(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+async function bootstrapSession(){
+  const { data:{ session }, error } = await supabaseClient.auth.getSession();
+  if (error) { showError("Couldn't verify your session. Please sign in again."); return null; }
+  if (!session) { window.location.href = LOGIN_URL; return null; }
+  return session;
+}
+
+/* Load full history from both tables, normalize to one shape, newest first.
+   RLS scopes each query to the caller's own rows. */
+async function loadAll(){
+  const q = (t) => supabaseClient.from(t).select("*").order("timestamp",{ascending:false});
+  const [ml, llm] = await Promise.all([ q("scans"), q("llm_scans") ]);
+  if (ml.error)  throw ml.error;
+  if (llm.error) throw llm.error;
+
+  const rows = [];
+  for (const r of (ml.data||[])){
+    rows.push({
+      kind:"ML", when:r.timestamp,
+      target: r.model_name || "ML model",
+      score: (r.risk_score!=null ? Number(r.risk_score) : null),
+      report_path: r.report_path || null
+    });
+  }
+  for (const r of (llm.data||[])){
+    rows.push({
+      kind:"LLM", when:r.timestamp,
+      target: r.endpoint_name || r.model_name || "LLM endpoint",
+      score: (r.overall_score!=null ? Number(r.overall_score) : null),
+      report_path: r.report_path || null
+    });
+  }
+  rows.sort((a,b)=> new Date(b.when) - new Date(a.when));
+  return rows;
+}
+
+function render(rows){
+  const list = $("list");
+  list.classList.remove("skeleton");
+
+  if (!rows.length){
+    list.innerHTML = `<div class="empty"><b>No scans yet</b>
+      Your reports will appear here once you run a scan.
+      <div style="margin-top:14px"><a href="dashboard.html">Go to Home to start one →</a></div></div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+  rows.forEach((r, i) => {
+    const row = document.createElement("div");
+    row.className = "row";
+    const sc = scoreClass(r.score);
+    const scoreText = (r.score==null) ? "—" : r.score;
+
+    // Download cell: disabled "unavailable" when there's no stored report.
+    let dlCell;
+    if (r.report_path){
+      dlCell = `<button class="dl" data-path="${escapeHtml(r.report_path)}" data-i="${i}">Download PDF</button>`;
+    } else {
+      dlCell = `<button class="dl" aria-disabled="true" title="No stored report for this scan">Report unavailable</button>`;
+    }
+
+    row.innerHTML = `
+      <span class="type-pill ${r.kind.toLowerCase()}">${r.kind}</span>
+      <span class="target">${escapeHtml(r.target)}</span>
+      <span class="date">${fmtDate(r.when)}</span>
+      <span class="score ${sc}">${scoreText}</span>
+      ${dlCell}`;
+    list.appendChild(row);
+  });
+
+  // Wire downloads: signed URL generated ON CLICK, then fetch+download.
+  list.querySelectorAll(".dl[data-path]").forEach(btn => {
+    btn.addEventListener("click", () => downloadReport(btn));
+  });
+}
+
+async function downloadReport(btn){
+  const path = btn.getAttribute("data-path");
+  const original = btn.textContent;
+  btn.classList.add("working");
+  btn.textContent = "Preparing…";
+  try {
+    // Signed URL created here, at click time, through the user's session.
+    // Storage RLS restricts this to the user's own object.
+    const { data, error } = await supabaseClient
+      .storage.from(REPORTS_BUCKET).createSignedUrl(path, SIGNED_URL_TTL);
+    if (error || !data || !data.signedUrl) throw (error || new Error("no signed url"));
+
+    // Trigger a real download rather than navigating away.
+    const a = document.createElement("a");
+    a.href = data.signedUrl;
+    a.download = path.split("/").pop() || "orbtech-report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    btn.classList.remove("working");
+    btn.textContent = original;
+  } catch (e){
+    console.error(e);
+    btn.classList.remove("working");
+    btn.textContent = "Retry download";
+    showError("That report couldn't be prepared for download. Please try again.");
+  }
+}
+
+(async function init(){
+  $("signout").addEventListener("click", async ()=>{
+    await supabaseClient.auth.signOut();
+    window.location.href = LOGIN_URL;
+  });
+
+  if (typeof supabaseClient === "undefined"){
+    showError("Supabase didn't load. Check your connection and reload.");
+    return;
+  }
+
+  const session = await bootstrapSession();
+  if (!session) return;
+
+  $("whoami-email").classList.remove("shimmer");
+  $("whoami-email").textContent = session.user.email || "";
+
+  try {
+    const rows = await loadAll();
+    render(rows);
+  } catch (e){
+    console.error(e);
+    // Never leave fake skeleton rows implying data is coming. Show the failure.
+    $("list").classList.remove("skeleton");
+    $("list").innerHTML = `<div class="empty"><b>Couldn't load your reports</b>
+      Please refresh, or sign in again if this keeps happening.</div>`;
+    showError("Couldn't load your reports.");
+  }
+})();
+</script>
+</body>
+</html>
