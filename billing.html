@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Billing · OrbTech</title>
+
+<!--
+  ============================================================================
+  OrbTech Dashboard — BILLING (Phase C, page 3 of 4)
+  ----------------------------------------------------------------------------
+  Stripped for v1 (no payment gateway yet — Razorpay comes after first paying
+  client). Shows: current plan, usage (same stateless count as Home/Reports),
+  the Free vs Pro comparison, and an Upgrade CTA.
+  NO invoice list, NO card entry — those get built when there's a gateway.
+
+  UPGRADE_CONTACT below is a mailto for now. When a booking form / Calendly
+  exists, change that ONE constant to the URL — nothing else needs to change.
+  ============================================================================
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+
+<style>
+  :root {
+    --orange:#F25F1F; --orange-dim:#C94A12;
+    --ink:#14110E; --paper:#FBF7F2; --card:#FFFFFF;
+    --line:#E7DFD5; --muted:#7A6F63;
+    --ok:#2E7D32; --warn:#B26A00; --danger:#C62828;
+    --radius:14px; --shadow:0 1px 2px rgba(20,17,14,.04), 0 8px 24px rgba(20,17,14,.05);
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    background:var(--paper); color:var(--ink);
+    font-family:"Sora", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  a { color:inherit; }
+
+  header.topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 28px; border-bottom:1px solid var(--line);
+    background:var(--card); position:sticky; top:0; z-index:10;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-.01em; }
+  .brand .dot { width:11px; height:11px; border-radius:50%; background:var(--orange);
+    box-shadow:0 0 0 4px rgba(242,95,31,.14); }
+  nav.tabs { display:flex; gap:4px; }
+  nav.tabs a { text-decoration:none; color:var(--muted); font-size:14px; font-weight:600;
+    padding:8px 14px; border-radius:9px; }
+  nav.tabs a[aria-current="page"] { color:var(--ink); background:var(--paper); }
+  nav.tabs a:hover { color:var(--ink); }
+  .whoami { display:flex; align-items:center; gap:12px; font-size:14px; color:var(--muted); }
+  .signout { font-size:13px; font-weight:600; color:var(--muted);
+    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px; cursor:pointer; }
+  .signout:hover { color:var(--ink); border-color:var(--muted); }
+
+  main { max-width:980px; margin:0 auto; padding:34px 28px 80px; }
+  .head { margin:4px 0 24px; }
+  .head h1 { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px; }
+  .head p { margin:0; color:var(--muted); font-size:15px; }
+
+  .card { background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:22px; }
+  .card h2 { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 16px; }
+
+  /* current plan + usage strip */
+  .status-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:22px; }
+  @media (max-width:640px){ .status-grid { grid-template-columns:1fr; } }
+
+  .plan-row { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; }
+  .plan-name { font-size:22px; font-weight:700; }
+  .plan-badge { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    padding:4px 9px; border-radius:999px; }
+  .plan-badge.free { background:#F3ECE3; color:var(--muted); }
+  .plan-badge.pro  { background:rgba(242,95,31,.12); color:var(--orange-dim); }
+  .plan-price { color:var(--muted); font-size:14px; }
+  .plan-price b { color:var(--ink); font-size:18px; font-weight:700; }
+
+  .usage-num { font-size:30px; font-weight:700; letter-spacing:-.02em; }
+  .usage-num .of { color:var(--muted); font-weight:600; font-size:20px; }
+  .usage-label { color:var(--muted); font-size:13px; margin-top:2px; }
+  .meter { height:8px; background:#F0E9E0; border-radius:999px; overflow:hidden; margin-top:14px; }
+  .meter > span { display:block; height:100%; background:var(--orange); border-radius:999px; }
+  .meter.full > span { background:var(--danger); }
+
+  .shimmer { color:transparent; background:linear-gradient(90deg,#EFE8DF,#F7F1E9,#EFE8DF);
+    background-size:200% 100%; animation:sh 1.2s infinite; border-radius:6px; }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* comparison table */
+  .compare { width:100%; border-collapse:collapse; }
+  .compare th, .compare td { text-align:left; padding:14px 16px; border-bottom:1px solid var(--line); font-size:14px; }
+  .compare thead th { font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700; }
+  .compare .feat { color:var(--muted); }
+  .compare td.val { font-weight:600; }
+  .compare .col-pro { background:rgba(242,95,31,.035); }
+  .compare th.col-pro { background:rgba(242,95,31,.06); border-top-right-radius:10px; }
+  .compare .yes { color:var(--ok); font-weight:700; }
+  .compare .no  { color:var(--muted); }
+  .plan-head { display:flex; align-items:baseline; gap:8px; }
+  .plan-head .price { font-size:13px; color:var(--muted); font-weight:600; }
+  .current-tag { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--muted); background:#F3ECE3; padding:2px 7px; border-radius:999px; margin-left:6px; }
+
+  .upgrade-row { margin-top:22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .btn-primary { background:var(--orange); color:#fff; text-decoration:none;
+    font-size:15px; font-weight:700; padding:13px 22px; border-radius:11px;
+    box-shadow:0 2px 8px rgba(242,95,31,.28); display:inline-block; }
+  .btn-primary:hover { background:var(--orange-dim); }
+  .btn-primary[aria-disabled="true"] { background:#E4D9CC; color:#9A8C7C; box-shadow:none;
+    cursor:default; pointer-events:none; }
+  .upgrade-note { color:var(--muted); font-size:13px; }
+
+  .banner { max-width:980px; margin:18px auto 0; padding:14px 18px; border-radius:12px; font-size:14px; }
+  .banner.error { background:#FCEBEA; color:var(--danger); border:1px solid #F3C9C6; }
+
+  @media (prefers-reduced-motion: reduce){ * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> OrbTech</div>
+  <nav class="tabs">
+    <a href="dashboard.html">Home</a>
+    <a href="reports.html">Reports</a>
+    <a href="profile.html">Profile</a>
+    <a href="billing.html" aria-current="page">Billing</a>
+  </nav>
+  <div class="whoami">
+    <span id="whoami-email" class="shimmer">loading@…</span>
+    <button class="signout" id="signout">Sign out</button>
+  </div>
+</header>
+
+<div id="err-slot"></div>
+
+<main>
+  <div class="head">
+    <h1>Billing</h1>
+    <p>Your plan and usage. Upgrade whenever you're ready to scan more.</p>
+  </div>
+
+  <div class="status-grid">
+    <section class="card">
+      <h2>Current plan</h2>
+      <div class="plan-row">
+        <span class="plan-name" id="plan-name">—</span>
+        <span class="plan-badge free" id="plan-badge">—</span>
+      </div>
+      <div class="plan-price" id="plan-price">—</div>
+    </section>
+
+    <section class="card">
+      <h2>Usage</h2>
+      <div class="usage-num" id="usage-num">—</div>
+      <div class="usage-label" id="usage-label">scans used</div>
+      <div class="meter" id="meter"><span id="meter-fill" style="width:0%"></span></div>
+    </section>
+  </div>
+
+  <section class="card" style="padding:0; overflow:hidden;">
+    <table class="compare">
+      <thead>
+        <tr>
+          <th>Feature</th>
+          <th>
+            <div class="plan-head">Free <span class="price">₹0</span><span id="tag-free"></span></div>
+          </th>
+          <th class="col-pro">
+            <div class="plan-head">Pro <span class="price">₹4,999/mo</span><span id="tag-pro"></span></div>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat">Scans</td>
+          <td class="val">1 lifetime</td>
+          <td class="val col-pro">100 / month</td>
+        </tr>
+        <tr>
+          <td class="feat">PDF report</td>
+          <td class="val"><span class="yes">Full</span></td>
+          <td class="val col-pro"><span class="yes">Full</span></td>
+        </tr>
+        <tr>
+          <td class="feat">Report history</td>
+          <td class="val">7 days</td>
+          <td class="val col-pro">Unlimited</td>
+        </tr>
+        <tr>
+          <td class="feat">Delete reports</td>
+          <td class="val"><span class="no">No</span></td>
+          <td class="val col-pro"><span class="yes">Yes</span></td>
+        </tr>
+        <tr>
+          <td class="feat">Priority support</td>
+          <td class="val"><span class="no">—</span></td>
+          <td class="val col-pro"><span class="yes">Yes</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="padding:20px 22px;">
+      <div class="upgrade-row" id="upgrade-row">
+        <!-- filled by JS based on current plan -->
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const LOGIN_URL = "login/";
+const FREE_LIMIT = 1;    // lifetime, combined ML+LLM — matches Phase B
+const PRO_LIMIT  = 100;  // per calendar month (UTC)
+
+// ---- SWAP THIS when a booking/contact form exists. mailto for now. ----
+const UPGRADE_CONTACT = "mailto:security@orbtech.in?subject=Upgrade%20to%20OrbTech%20Pro&body=Hi%2C%20I%27d%20like%20to%20upgrade%20my%20OrbTech%20account%20to%20Pro.";
+
+const $ = (id) => document.getElementById(id);
+function showError(msg){ $("err-slot").innerHTML = `<div class="banner error">${msg}</div>`; }
+
+function monthStartUTCISO(){
+  const n = new Date();
+  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), 1, 0,0,0)).toISOString();
+}
+
+async function bootstrapSession(){
+  const { data:{ session }, error } = await supabaseClient.auth.getSession();
+  if (error){ showError("Couldn't verify your session. Please sign in again."); return null; }
+  if (!session){ window.location.href = LOGIN_URL; return null; }
+  return session;
+}
+
+async function loadPlan(userId){
+  const { data, error } = await supabaseClient
+    .from("profiles").select("plan").eq("id", userId).single();
+  if (error) throw error;
+  return (data.plan || "free").toLowerCase();
+}
+
+async function countUsage(plan){
+  const since = plan === "pro" ? monthStartUTCISO() : null;
+  const q = (t) => {
+    let b = supabaseClient.from(t).select("id", { count:"exact", head:true });
+    if (since) b = b.gte("timestamp", since);
+    return b;
+  };
+  const [ml, llm] = await Promise.all([ q("scans"), q("llm_scans") ]);
+  if (ml.error)  throw ml.error;
+  if (llm.error) throw llm.error;
+  return (ml.count || 0) + (llm.count || 0);
+}
+
+function renderPlan(plan, used){
+  const isPro = plan === "pro";
+  const limit = isPro ? PRO_LIMIT : FREE_LIMIT;
+
+  $("plan-name").textContent = isPro ? "Pro" : "Free";
+  const badge = $("plan-badge");
+  badge.textContent = isPro ? "Pro" : "Free";
+  badge.className = "plan-badge " + (isPro ? "pro" : "free");
+  $("plan-price").innerHTML = isPro ? `<b>₹4,999</b> / month` : `<b>₹0</b> — free forever`;
+
+  $("usage-num").innerHTML = `${used}<span class="of"> / ${limit}</span>`;
+  $("usage-label").textContent = isPro ? "scans this month" : "lifetime scan";
+  const pct = Math.min(100, Math.round((used/limit)*100));
+  $("meter-fill").style.width = pct + "%";
+  $("meter").classList.toggle("full", used >= limit);
+
+  // "Current plan" tag on the comparison column that matches the user's plan
+  $("tag-free").innerHTML = isPro ? "" : `<span class="current-tag">Your plan</span>`;
+  $("tag-pro").innerHTML  = isPro ? `<span class="current-tag">Your plan</span>` : "";
+
+  // Upgrade CTA — only shown to Free users. Pro users see a thank-you.
+  const row = $("upgrade-row");
+  if (isPro){
+    row.innerHTML = `<span class="upgrade-note">You're on Pro — thanks for supporting OrbTech. Need anything? <a href="${UPGRADE_CONTACT}" style="color:var(--orange-dim);font-weight:700;text-decoration:none;">Get in touch</a>.</span>`;
+  } else {
+    row.innerHTML = `
+      <a href="${UPGRADE_CONTACT}" class="btn-primary">Upgrade to Pro</a>
+      <span class="upgrade-note">₹4,999/month · 100 scans, unlimited history. We'll set you up manually while payments come online.</span>`;
+  }
+}
+
+(async function init(){
+  $("signout").addEventListener("click", async ()=>{
+    await supabaseClient.auth.signOut();
+    window.location.href = LOGIN_URL;
+  });
+
+  if (typeof supabaseClient === "undefined"){
+    showError("Supabase didn't load. Check your connection and reload.");
+    return;
+  }
+
+  const session = await bootstrapSession();
+  if (!session) return;
+
+  $("whoami-email").classList.remove("shimmer");
+  $("whoami-email").textContent = session.user.email || "";
+
+  try {
+    const plan = await loadPlan(session.user.id);
+    const used = await countUsage(plan);
+    renderPlan(plan, used);
+  } catch (e){
+    console.error(e);
+    showError("Couldn't load your billing details. Please refresh, or sign in again if this continues.");
+  }
+})();
+</script>
+</body>
+</html>

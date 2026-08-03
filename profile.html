@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Profile · OrbTech</title>
+
+<!--
+  ============================================================================
+  OrbTech Dashboard — PROFILE (Phase C, page 4 of 4)
+  ----------------------------------------------------------------------------
+  The only page that WRITES. Name is editable -> writes profiles.name via the
+  profiles_update_own UPDATE policy (column-level grant update(name), so this
+  can ONLY touch name — not plan/role/status).
+  The write VERIFIES the returned row before showing success — an RLS-blocked
+  update returns [] with no exception, so "no error" is NOT proof of success.
+  Email / Plan / Joined are read-only. API Providers is derived from scan
+  history (which providers you've scanned) — display only, no key storage.
+  ============================================================================
+-->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+<script src="js/auth.js"></script>
+
+<style>
+  :root {
+    --orange:#F25F1F; --orange-dim:#C94A12;
+    --ink:#14110E; --paper:#FBF7F2; --card:#FFFFFF;
+    --line:#E7DFD5; --muted:#7A6F63;
+    --ok:#2E7D32; --warn:#B26A00; --danger:#C62828;
+    --radius:14px; --shadow:0 1px 2px rgba(20,17,14,.04), 0 8px 24px rgba(20,17,14,.05);
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    background:var(--paper); color:var(--ink);
+    font-family:"Sora", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+  }
+  a { color:inherit; }
+
+  header.topbar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 28px; border-bottom:1px solid var(--line);
+    background:var(--card); position:sticky; top:0; z-index:10;
+  }
+  .brand { display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:-.01em; }
+  .brand .dot { width:11px; height:11px; border-radius:50%; background:var(--orange);
+    box-shadow:0 0 0 4px rgba(242,95,31,.14); }
+  nav.tabs { display:flex; gap:4px; }
+  nav.tabs a { text-decoration:none; color:var(--muted); font-size:14px; font-weight:600;
+    padding:8px 14px; border-radius:9px; }
+  nav.tabs a[aria-current="page"] { color:var(--ink); background:var(--paper); }
+  nav.tabs a:hover { color:var(--ink); }
+  .whoami { display:flex; align-items:center; gap:12px; font-size:14px; color:var(--muted); }
+  .signout { font-size:13px; font-weight:600; color:var(--muted);
+    background:none; border:1px solid var(--line); border-radius:8px; padding:7px 12px; cursor:pointer; }
+  .signout:hover { color:var(--ink); border-color:var(--muted); }
+
+  main { max-width:720px; margin:0 auto; padding:34px 28px 80px; }
+  .head { margin:4px 0 24px; }
+  .head h1 { font-size:26px; font-weight:700; letter-spacing:-.02em; margin:0 0 4px; }
+  .head p { margin:0; color:var(--muted); font-size:15px; }
+
+  .card { background:var(--card); border:1px solid var(--line);
+    border-radius:var(--radius); box-shadow:var(--shadow); padding:8px 22px; margin-bottom:18px; }
+  .card.pad { padding:22px; }
+  .card h2 { font-size:12px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--muted); margin:0 0 4px; }
+
+  .field { display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 0; border-bottom:1px solid var(--line); }
+  .field:last-child { border-bottom:none; }
+  .field .label { font-size:13px; color:var(--muted); font-weight:600; }
+  .field .value { font-size:15px; font-weight:600; }
+  .field .value.muted { color:var(--muted); font-weight:500; }
+
+  .plan-badge { font-size:11px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    padding:4px 9px; border-radius:999px; }
+  .plan-badge.free { background:#F3ECE3; color:var(--muted); }
+  .plan-badge.pro  { background:rgba(242,95,31,.12); color:var(--orange-dim); }
+
+  /* name edit */
+  .name-view { display:flex; align-items:center; gap:12px; }
+  .name-edit { display:none; align-items:center; gap:8px; }
+  .name-edit input { font-family:inherit; font-size:15px; font-weight:600; color:var(--ink);
+    border:1px solid var(--line); border-radius:8px; padding:8px 12px; width:220px; }
+  .name-edit input:focus { outline:none; border-color:var(--orange); }
+  .link-btn { background:none; border:none; color:var(--orange-dim); font-weight:700;
+    font-size:13px; cursor:pointer; padding:0; font-family:inherit; }
+  .link-btn:hover { text-decoration:underline; }
+  .btn-sm { font-size:13px; font-weight:700; padding:8px 14px; border-radius:9px; cursor:pointer;
+    font-family:inherit; border:1px solid var(--line); background:var(--card); color:var(--ink); }
+  .btn-sm.primary { background:var(--orange); color:#fff; border-color:var(--orange); }
+  .btn-sm.primary:hover { background:var(--orange-dim); }
+  .btn-sm:disabled { opacity:.6; cursor:default; }
+  .save-msg { font-size:13px; font-weight:600; }
+  .save-msg.ok { color:var(--ok); }
+  .save-msg.err { color:var(--danger); }
+
+  /* providers */
+  .providers { display:flex; flex-wrap:wrap; gap:8px; padding:8px 0 4px; }
+  .prov-pill { font-size:13px; font-weight:600; padding:6px 12px; border-radius:999px;
+    background:#F3ECE3; color:var(--ink); }
+  .prov-empty { color:var(--muted); font-size:14px; padding:4px 0; }
+
+  .shimmer { color:transparent; background:linear-gradient(90deg,#EFE8DF,#F7F1E9,#EFE8DF);
+    background-size:200% 100%; animation:sh 1.2s infinite; border-radius:6px; }
+  @keyframes sh { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  .banner { max-width:720px; margin:18px auto 0; padding:14px 18px; border-radius:12px; font-size:14px; }
+  .banner.error { background:#FCEBEA; color:var(--danger); border:1px solid #F3C9C6; }
+
+  @media (prefers-reduced-motion: reduce){ * { animation:none !important; transition:none !important; } }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span class="dot"></span> OrbTech</div>
+  <nav class="tabs">
+    <a href="dashboard.html">Home</a>
+    <a href="reports.html">Reports</a>
+    <a href="profile.html" aria-current="page">Profile</a>
+    <a href="billing.html">Billing</a>
+  </nav>
+  <div class="whoami">
+    <span id="whoami-email" class="shimmer">loading@…</span>
+    <button class="signout" id="signout">Sign out</button>
+  </div>
+</header>
+
+<div id="err-slot"></div>
+
+<main>
+  <div class="head">
+    <h1>Profile</h1>
+    <p>Your account details.</p>
+  </div>
+
+  <section class="card">
+    <div class="field">
+      <span class="label">Name</span>
+      <div>
+        <div class="name-view" id="name-view">
+          <span class="value" id="name-value">—</span>
+          <button class="link-btn" id="name-edit-btn">Edit</button>
+        </div>
+        <div class="name-edit" id="name-edit">
+          <input type="text" id="name-input" maxlength="80" placeholder="Your name" />
+          <button class="btn-sm primary" id="name-save-btn">Save</button>
+          <button class="btn-sm" id="name-cancel-btn">Cancel</button>
+        </div>
+        <span class="save-msg" id="name-msg"></span>
+      </div>
+    </div>
+
+    <div class="field">
+      <span class="label">Email</span>
+      <span class="value muted" id="email-value">—</span>
+    </div>
+
+    <div class="field">
+      <span class="label">Plan</span>
+      <span class="plan-badge free" id="plan-value">—</span>
+    </div>
+
+    <div class="field">
+      <span class="label">Joined</span>
+      <span class="value muted" id="joined-value">—</span>
+    </div>
+  </section>
+
+  <section class="card pad">
+    <h2>Models tested</h2>
+    <p style="font-size:13px;color:var(--muted);margin:0 0 6px;">Models you've run scans against. We never store your API keys.</p>
+    <div class="providers" id="providers"><span class="prov-empty">Loading…</span></div>
+  </section>
+</main>
+
+<script>
+const LOGIN_URL = "login/";
+const $ = (id) => document.getElementById(id);
+function showError(msg){ $("err-slot").innerHTML = `<div class="banner error">${msg}</div>`; }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
+  ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function fmtDate(iso){
+  if(!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d)) return "—";
+  return d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"});
+}
+
+let CURRENT_USER_ID = null;
+
+async function bootstrapSession(){
+  const { data:{ session }, error } = await supabaseClient.auth.getSession();
+  if (error){ showError("Couldn't verify your session. Please sign in again."); return null; }
+  if (!session){ window.location.href = LOGIN_URL; return null; }
+  return session;
+}
+
+async function loadProfile(userId){
+  const { data, error } = await supabaseClient
+    .from("profiles").select("name,email,plan,created_at").eq("id", userId).single();
+  if (error) throw error;
+  return data;
+}
+
+/* Distinct model names the user has tested, across BOTH scan types.
+   No 'provider' column exists — this reads the real stored model names:
+   llm_scans.model and scans.model_name. Read-only, RLS-scoped. */
+async function loadModelsTested(){
+  const [llm, ml] = await Promise.all([
+    supabaseClient.from("llm_scans").select("model"),
+    supabaseClient.from("scans").select("model_name")
+  ]);
+  if (llm.error) throw llm.error;
+  if (ml.error)  throw ml.error;
+  const set = new Set();
+  for (const r of (llm.data||[])){ const m=(r.model||"").trim(); if (m) set.add(m); }
+  for (const r of (ml.data||[])){ const m=(r.model_name||"").trim(); if (m) set.add(m); }
+  return [...set];
+}
+
+function renderProfile(p){
+  $("name-value").textContent = (p.name && p.name.trim()) ? p.name.trim() : "Not set";
+  $("name-value").classList.toggle("muted", !(p.name && p.name.trim()));
+  $("email-value").textContent = p.email || "";
+  const isPro = (p.plan||"free").toLowerCase() === "pro";
+  const badge = $("plan-value");
+  badge.textContent = isPro ? "Pro" : "Free";
+  badge.className = "plan-badge " + (isPro ? "pro" : "free");
+  $("joined-value").textContent = fmtDate(p.created_at);
+}
+
+function renderModels(list){
+  const el = $("providers");
+  if (!list.length){
+    el.innerHTML = `<span class="prov-empty">No models tested yet — they'll appear here once you run a scan.</span>`;
+    return;
+  }
+  el.innerHTML = list.map(m => `<span class="prov-pill">${escapeHtml(m)}</span>`).join("");
+}
+
+/* ---- name edit ---- */
+function enterEdit(currentName){
+  $("name-view").style.display = "none";
+  $("name-edit").style.display = "flex";
+  $("name-msg").textContent = "";
+  const inp = $("name-input");
+  inp.value = (currentName && currentName !== "Not set") ? currentName : "";
+  inp.focus();
+}
+function exitEdit(){
+  $("name-edit").style.display = "none";
+  $("name-view").style.display = "flex";
+}
+
+async function saveName(){
+  const newName = $("name-input").value.trim();
+  const msg = $("name-msg");
+  msg.textContent = ""; msg.className = "save-msg";
+
+  if (!newName){ msg.textContent = "Name can't be empty."; msg.className = "save-msg err"; return; }
+
+  const saveBtn = $("name-save-btn");
+  saveBtn.disabled = true; saveBtn.textContent = "Saving…";
+
+  try {
+    // Update, then SELECT the row back. An RLS-blocked update returns [] with
+    // no error — so we require the returned row to confirm the write landed.
+    const { data, error } = await supabaseClient
+      .from("profiles").update({ name: newName }).eq("id", CURRENT_USER_ID).select();
+    if (error) throw error;
+    if (!data || !data.length || data[0].name !== newName){
+      // Write did not take effect — do NOT claim success.
+      throw new Error("update-not-applied");
+    }
+    // Confirmed.
+    $("name-value").textContent = newName;
+    $("name-value").classList.remove("muted");
+    exitEdit();
+    const okMsg = $("name-msg");
+    okMsg.textContent = "Saved."; okMsg.className = "save-msg ok";
+    setTimeout(()=>{ okMsg.textContent = ""; }, 2500);
+  } catch (e){
+    console.error(e);
+    // Stay in edit mode so the unsaved value isn't lost.
+    msg.textContent = "Couldn't save your name. Please try again.";
+    msg.className = "save-msg err";
+  } finally {
+    saveBtn.disabled = false; saveBtn.textContent = "Save";
+  }
+}
+
+(async function init(){
+  $("signout").addEventListener("click", async ()=>{
+    await supabaseClient.auth.signOut();
+    window.location.href = LOGIN_URL;
+  });
+
+  if (typeof supabaseClient === "undefined"){
+    showError("Supabase didn't load. Check your connection and reload.");
+    return;
+  }
+
+  const session = await bootstrapSession();
+  if (!session) return;
+  CURRENT_USER_ID = session.user.id;
+
+  $("whoami-email").classList.remove("shimmer");
+  $("whoami-email").textContent = session.user.email || "";
+
+  // wire name edit
+  $("name-edit-btn").addEventListener("click", ()=> enterEdit($("name-value").textContent));
+  $("name-cancel-btn").addEventListener("click", exitEdit);
+  $("name-save-btn").addEventListener("click", saveName);
+  $("name-input").addEventListener("keydown", (e)=>{ if (e.key === "Enter") saveName(); if (e.key === "Escape") exitEdit(); });
+
+  try {
+    const profile = await loadProfile(CURRENT_USER_ID);
+    renderProfile(profile);
+  } catch (e){
+    console.error(e);
+    showError("Couldn't load your profile. Please refresh, or sign in again if this continues.");
+  }
+
+  // models-tested is independent — a failure here shouldn't blank the whole page
+  try {
+    const models = await loadModelsTested();
+    renderModels(models);
+  } catch (e){
+    console.error(e);
+    $("providers").innerHTML = `<span class="prov-empty">Couldn't load models tested.</span>`;
+  }
+})();
+</script>
+</body>
+</html>
