@@ -13,8 +13,8 @@
 //     script-minimal: no third-party scripts beyond the Supabase client.
 //   - 60s Max-Age, single-purpose — not the long-lived Streamlit session.
 
-const STREAMLIT_URL = "http://localhost:8501/?auth_mode=handoff"; // prod: https://app.orbtech.in
-const HANDOFF_COOKIE_DOMAIN = ""; // "" = current host only (local testing). prod: ".orbtech.in"
+const STREAMLIT_URL = "https://app.orbtech.in/?auth_mode=handoff";
+const HANDOFF_COOKIE_DOMAIN = ".orbtech.in";
 
 function setHandoffCookie(token) {
     const secureFlag = location.protocol === "https:" ? "; Secure" : "";
