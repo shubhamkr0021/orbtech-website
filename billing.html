@@ -390,8 +390,27 @@ async function pollForProPlan(userId){
   note.textContent = "Still activating — this can take a minute. Refresh the page to check.";
 }
 
+// TEMP: mailto upgrade until Razorpay live-mode KYC done. Swap back to
+// startCheckout() to re-enable self-serve checkout.
+async function upgradeViaMailto(){
+  let email = "", userId = "";
+  try {
+    const { data:{ session } } = await supabaseClient.auth.getSession();
+    if (session && session.user){
+      email  = session.user.email || "";
+      userId = session.user.id || "";
+    }
+  } catch (e){
+    console.error(e); // fail-soft -- missing info is not a reason to block the mailto
+  }
+  const bodyLines = ["I'd like to upgrade to Pro.", "",
+    email  ? `Account email: ${email}` : "",
+    userId ? `User ID: ${userId}` : ""].filter(Boolean).join("\n");
+  window.location.href = `mailto:security@orbtech.in?subject=${encodeURIComponent("OrbTech Pro upgrade request")}&body=${encodeURIComponent(bodyLines)}`;
+}
+
 document.addEventListener("click", (e) => {
-  if (e.target && e.target.id === "upgrade-btn") startCheckout();
+  if (e.target && e.target.id === "upgrade-btn") upgradeViaMailto(); // TEMP: mailto upgrade until Razorpay live-mode KYC done. Swap back to startCheckout() to re-enable self-serve checkout.
 });
 
 (async function init(){
