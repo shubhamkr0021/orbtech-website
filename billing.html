@@ -22,6 +22,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
 <style>
   :root {
@@ -219,7 +220,15 @@ const LOGIN_URL = "login/";
 const FREE_LIMIT = 1;    // lifetime, combined ML+LLM — matches Phase B
 const PRO_LIMIT  = 100;  // per calendar month (UTC)
 
-// ---- SWAP THIS when a booking/contact form exists. mailto for now. ----
+// FastAPI scanner backend -- confirmed live deployment serving
+// /create-subscription and /razorpay-webhook.
+const API_URL = "https://orbtech-api.onrender.com";
+
+// TEST MODE Razorpay key id -- the PUBLIC key (safe client-side, it's not
+// the secret).
+const RAZORPAY_KEY_ID = "rzp_test_TM4BnEmljkw8Or";
+
+// ---- Contact link kept only for the Pro "thank you" state below. ----
 const UPGRADE_CONTACT = "mailto:security@orbtech.in?subject=Upgrade%20to%20OrbTech%20Pro&body=Hi%2C%20I%27d%20like%20to%20upgrade%20my%20OrbTech%20account%20to%20Pro.";
 
 const $ = (id) => document.getElementById(id);
@@ -283,10 +292,107 @@ function renderPlan(plan, used){
     row.innerHTML = `<span class="upgrade-note">You're on Pro — thanks for supporting OrbTech. Need anything? <a href="${UPGRADE_CONTACT}" style="color:var(--orange-dim);font-weight:700;text-decoration:none;">Get in touch</a>.</span>`;
   } else {
     row.innerHTML = `
-      <a href="${UPGRADE_CONTACT}" class="btn-primary">Upgrade to Pro</a>
-      <span class="upgrade-note">₹4,999/month · 100 scans, unlimited history. We'll set you up manually while payments come online.</span>`;
+      <button id="upgrade-btn" class="btn-primary">Upgrade to Pro</button>
+      <span class="upgrade-note" id="upgrade-note">₹4,999/month · 100 scans, unlimited history.</span>`;
   }
 }
+
+// ---- Razorpay checkout ---------------------------------------------------
+// Trust boundary: this file only ever creates a subscription and opens
+// Checkout. It never sets plan='pro' itself -- only the signature-verified
+// /razorpay-webhook does that, server-side, after payment actually clears.
+async function startCheckout(){
+  const btn  = $("upgrade-btn");
+  const note = $("upgrade-note");
+  btn.disabled = true;
+  btn.textContent = "Preparing checkout…";
+
+  const { data:{ session }, error } = await supabaseClient.auth.getSession();
+  if (error || !session){
+    window.location.href = LOGIN_URL;
+    return;
+  }
+
+  let subscriptionId;
+  try {
+    const res = await fetch(`${API_URL}/create-subscription`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    if (res.status === 401){
+      window.location.href = LOGIN_URL;
+      return;
+    }
+    if (!res.ok){
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Server returned ${res.status}`);
+    }
+    ({ subscription_id: subscriptionId } = await res.json());
+  } catch (e){
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = "Upgrade to Pro";
+    note.textContent = "Couldn't start checkout. Please try again.";
+    return;
+  }
+
+  const rzp = new Razorpay({
+    key: RAZORPAY_KEY_ID,
+    subscription_id: subscriptionId,
+    name: "OrbTech",
+    description: "Pro Plan — Monthly",
+    prefill: { email: session.user.email || "" },
+    theme: { color: "#F25F1F" },
+    handler: function (){
+      // Payment authorized client-side -- NOT the same as Pro being
+      // granted. The webhook does that; we just wait for it to land.
+      note.textContent = "Payment received — activating your account…";
+      btn.style.display = "none";
+      pollForProPlan(session.user.id);
+    },
+    modal: {
+      ondismiss: function (){
+        btn.disabled = false;
+        btn.textContent = "Upgrade to Pro";
+        note.textContent = "Checkout was closed before completing. You can try again anytime.";
+      },
+    },
+  });
+  rzp.on("payment.failed", function (){
+    btn.disabled = false;
+    btn.textContent = "Upgrade to Pro";
+    note.textContent = "Payment failed. Please try again.";
+  });
+  rzp.open();
+}
+
+// Webhook activation is asynchronous relative to the checkout handler
+// firing -- poll profiles.plan briefly rather than assuming it's already
+// flipped. Gives up after ~30s with a message to refresh, since a slow
+// webhook delivery (not a failure) shouldn't leave the user staring at a
+// spinner forever.
+async function pollForProPlan(userId){
+  const note = $("upgrade-note");
+  const deadline = Date.now() + 30000;
+  while (Date.now() < deadline){
+    await new Promise(r => setTimeout(r, 2000));
+    try {
+      const plan = await loadPlan(userId);
+      if (plan === "pro"){
+        const used = await countUsage(plan);
+        renderPlan(plan, used);
+        return;
+      }
+    } catch (e){
+      console.error(e);
+    }
+  }
+  note.textContent = "Still activating — this can take a minute. Refresh the page to check.";
+}
+
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "upgrade-btn") startCheckout();
+});
 
 (async function init(){
   $("signout").addEventListener("click", async ()=>{
