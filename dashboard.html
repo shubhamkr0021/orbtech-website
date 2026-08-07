@@ -292,7 +292,8 @@ function fmtDate(iso){
    supabaseClient (same anon key, same localStorage-backed session) as the
    login page that authenticated via signInWithPassword() — no separate
    restore/setSession() step needed; that's a genuinely different case (a
-   one-shot handoff *token*, not a shared client) and doesn't apply here.
+   bearer token handed off to a different app, not a shared client) and
+   doesn't apply here.
 ---------------------------------------------------------------------------- */
 async function bootstrapSession(){
   const { data:{ session }, error } = await supabaseClient.auth.getSession();

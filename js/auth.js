@@ -1,9 +1,9 @@
 // js/auth.js — shared auth logic used by login/, signup/, and reset-password/.
 //
-// HANDOFF METHOD (unchanged from the proof slice): a short-lived, same-
-// registrable-domain cookie, not a URL token. See the proof-slice notes
-// below for the full trade-off writeup — repeated briefly here since this
-// file is what actually implements it.
+// HANDOFF METHOD (unchanged from the proof slice): a same-registrable-
+// domain cookie, not a URL token. See the proof-slice notes below for the
+// full trade-off writeup — repeated briefly here since this file is what
+// actually implements it.
 //   - Avoids browser history / access-log / Referer exposure that a URL
 //     token would have.
 //   - Requires login/signup and the Streamlit app to share a registrable
@@ -11,7 +11,15 @@
 //   - Cannot be HttpOnly (set via client-side JS) — an XSS bug on these
 //     pages could still steal it. That's why these pages are kept
 //     script-minimal: no third-party scripts beyond the Supabase client.
-//   - 60s Max-Age, single-purpose — not the long-lived Streamlit session.
+//   - Max-Age=60 only controls how long the BROWSER auto-resends this
+//     cookie — it is not the real security boundary. The cookie's value is
+//     the user's actual Supabase access token, so it stays valid for that
+//     token's own exp lifetime (Supabase's normal ~1hr access-token
+//     expiry), regardless of this cookie's 60s Max-Age. There is no
+//     server-side single-use/jti tracking, so a captured token can be
+//     handed off more than once within that ~1hr window, not just within
+//     60s. (Possible future hardening: single-use tracking keyed on the
+//     JWT's jti, if a tighter guarantee is ever needed.)
 
 const STREAMLIT_URL = "https://app.orbtech.in/?auth_mode=handoff";
 const HANDOFF_COOKIE_DOMAIN = ".orbtech.in";
