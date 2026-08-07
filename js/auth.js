@@ -41,8 +41,20 @@ function friendlyAuthError(error) {
     if (msg.includes("email not confirmed")) {
         return "UNCONFIRMED";
     }
-    if (msg.includes("password") && (msg.includes("least") || msg.includes("short") || msg.includes("weak") || msg.includes("6 characters"))) {
-        return "Password must be at least 6 characters.";
+    // Prefer a stable field over message substrings where Supabase exposes
+    // one: error.code ("weak_password") is the most stable, error.name
+    // ("AuthWeakPasswordError") is the SDK-level fallback. Substring
+    // matching on error.message is the last resort, since Supabase's exact
+    // wording for this custom password policy isn't something we can pin
+    // down without a live rejection to inspect.
+    const isWeakPassword =
+        (error && error.code === "weak_password") ||
+        (error && error.name === "AuthWeakPasswordError") ||
+        (msg.includes("password") && (msg.includes("least") || msg.includes("short") || msg.includes("weak") ||
+            msg.includes("character") || msg.includes("uppercase") || msg.includes("lowercase") ||
+            msg.includes("symbol") || msg.includes("digit")));
+    if (isWeakPassword) {
+        return "Password must be at least 10 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.";
     }
     if (msg.includes("rate limit") || msg.includes("too many")) {
         return "Too many attempts. Please wait a moment and try again.";
@@ -51,6 +63,21 @@ function friendlyAuthError(error) {
         return "Network error — please check your connection and try again.";
     }
     return "Something went wrong. Please try again.";
+}
+
+// Single source of truth for the password policy -- mirrors the server-side
+// Supabase rule exactly (min length 10, lowercase + uppercase + digit +
+// symbol). Used by both signup and reset-password so the two can never
+// drift apart. This is a UX gate only; the server rule is what actually
+// enforces it.
+function validatePasswordPolicy(pw) {
+    return {
+        length:    pw.length >= 10,
+        lowercase: /[a-z]/.test(pw),
+        uppercase: /[A-Z]/.test(pw),
+        digit:     /[0-9]/.test(pw),
+        symbol:    /[^A-Za-z0-9]/.test(pw),
+    };
 }
 
 // ---- If already logged in, don't show the form — go straight to the
@@ -147,6 +174,24 @@ function initSignupPage() {
     const form = document.getElementById("signup-form");
     const statusEl = document.getElementById("status");
     const submitBtn = document.getElementById("submit-btn");
+    const passwordInput = document.getElementById("password");
+    const checklistItems = document.querySelectorAll("#pw-checklist li");
+
+    // Live checklist + submit gate -- password-only. Name/email keep their
+    // own independent checks inside the submit handler below, untouched;
+    // this listener never looks at those fields. Starts disabled since an
+    // empty password fails every rule.
+    submitBtn.disabled = true;
+    passwordInput.addEventListener("input", function () {
+        const result = validatePasswordPolicy(passwordInput.value);
+        let allMet = true;
+        checklistItems.forEach(function (li) {
+            const met = !!result[li.dataset.rule];
+            li.classList.toggle("met", met);
+            if (!met) allMet = false;
+        });
+        submitBtn.disabled = !allMet;
+    });
 
     form.addEventListener("submit", async function (e) {
         e.preventDefault();
@@ -176,8 +221,9 @@ function initSignupPage() {
             statusEl.className = "error";
             return;
         }
-        if (password.length < 6) {
-            statusEl.textContent = "Password must be at least 6 characters.";
+        const policyResult = validatePasswordPolicy(password);
+        if (Object.values(policyResult).some(function (met) { return !met; })) {
+            statusEl.textContent = "Password must be at least 10 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.";
             statusEl.className = "error";
             return;
         }
@@ -231,6 +277,23 @@ function initResetPasswordPage() {
     const updateForm = document.getElementById("update-form");
     const updateStatus = document.getElementById("update-status");
     const updateSubmitBtn = document.getElementById("update-submit-btn");
+    const newPasswordInput = document.getElementById("new-password");
+    const updateChecklistItems = document.querySelectorAll("#pw-checklist li");
+
+    // Live checklist + submit gate -- password-only, same pattern as
+    // initSignupPage(). Starts disabled since an empty password fails
+    // every rule.
+    updateSubmitBtn.disabled = true;
+    newPasswordInput.addEventListener("input", function () {
+        const result = validatePasswordPolicy(newPasswordInput.value);
+        let allMet = true;
+        updateChecklistItems.forEach(function (li) {
+            const met = !!result[li.dataset.rule];
+            li.classList.toggle("met", met);
+            if (!met) allMet = false;
+        });
+        updateSubmitBtn.disabled = !allMet;
+    });
 
     // The recovery token arrives in the URL FRAGMENT (#access_token=...&
     // type=recovery), which a server never sees — only client-side JS can
@@ -284,8 +347,9 @@ function initResetPasswordPage() {
         updateStatus.textContent = "";
         updateStatus.className = "";
 
-        if (newPassword.length < 6) {
-            updateStatus.textContent = "Password must be at least 6 characters.";
+        const updatePolicyResult = validatePasswordPolicy(newPassword);
+        if (Object.values(updatePolicyResult).some(function (met) { return !met; })) {
+            updateStatus.textContent = "Password must be at least 10 characters and include an uppercase letter, a lowercase letter, a number, and a symbol.";
             updateStatus.className = "error";
             return;
         }

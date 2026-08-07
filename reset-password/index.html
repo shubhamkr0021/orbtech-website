@@ -54,6 +54,11 @@ button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
 .footer-links a { color: var(--orange); text-decoration: none; font-weight: 600; }
 .footer-links a:hover { text-decoration: underline; }
 #update-section { display: none; }
+.pw-checklist { list-style: none; margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-3); font-family: var(--mono); }
+.pw-checklist li { padding: 0.15rem 0; transition: color 0.2s; }
+.pw-checklist li::before { content: "○ "; }
+.pw-checklist li.met { color: #4ADE80; }
+.pw-checklist li.met::before { content: "✓ "; }
 </style>
 </head>
 <body>
@@ -82,7 +87,14 @@ button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
       <p class="subtitle">You're verified — choose a new password to finish.</p>
       <form id="update-form" autocomplete="off">
         <label for="new-password">New password</label>
-        <input type="password" id="new-password" placeholder="At least 6 characters" required autocomplete="new-password" minlength="6">
+        <input type="password" id="new-password" placeholder="At least 10 characters" required autocomplete="new-password" minlength="10">
+        <ul class="pw-checklist" id="pw-checklist">
+          <li data-rule="length">At least 10 characters</li>
+          <li data-rule="lowercase">A lowercase letter</li>
+          <li data-rule="uppercase">An uppercase letter</li>
+          <li data-rule="digit">A number</li>
+          <li data-rule="symbol">A symbol</li>
+        </ul>
         <button type="submit" id="update-submit-btn">Set new password</button>
         <div id="update-status" class="status-msg"></div>
       </form>
