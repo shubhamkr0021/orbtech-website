@@ -405,34 +405,28 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
 
 <section class="contact" id="contact">
   <div class="container">
-    <div class="reveal"><div class="section-tag">Contact</div><h2 class="section-title">Let's talk</h2><p class="section-sub">Ready to test your LLM app or ML model? Fill the form below and get your invite code within 24 hours.</p></div>
+    <div class="reveal"><div class="section-tag">Feedback</div><h2 class="section-title">Tell me what you think</h2><p class="section-sub">Tried OrbTech, or have thoughts on where it should go? Send it over - it lands straight in my inbox.</p></div>
     <div class="contact-options reveal">
       <a href="mailto:security@orbtech.in" class="contact-card"><span class="contact-icon">✉</span><div><div class="contact-card-label">Email</div><div class="contact-card-value">security@orbtech.in</div></div></a>
       <a href="https://app.orbtech.in" class="contact-card"><span class="contact-icon">⚡</span><div><div class="contact-card-label">Live app</div><div class="contact-card-value">Try it now →</div></div></a>
       <a href="https://linkedin.com/in/shubhamkumar-orbtech" class="contact-card"><span class="contact-icon">in</span><div><div class="contact-card-label">LinkedIn</div><div class="contact-card-value">Shubham Kumar</div></div></a>
     </div>
     <div class="audit-box reveal">
-      <div class="audit-head"><h3>Request a free audit</h3><p class="tagline">Get your first scan running in under 24 hours.</p></div>
-      <div class="steps-box">
-        <div class="step-row"><span class="step-n">1</span><span>Submit your details below.</span></div>
-        <div class="step-row"><span class="step-n">2</span><span>I'll personally reply within 24 hours from <b>security@orbtech.in</b> with your invite code.</span></div>
-        <div class="step-row"><span class="step-n">3</span><span>Open <b>app.orbtech.in</b>, paste the code, and run your first scan.</span></div>
-      </div>
+      <div class="audit-head"><h3>Share your feedback</h3><p class="tagline">Bugs, feature requests, or just a reaction - all of it helps.</p></div>
       <div id="form-success" style="display:none;text-align:center;padding:24px 0;">
         <div style="font-size:2.4rem;margin-bottom:14px;color:#3FB87A;">✓</div>
-        <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:8px;">Request received!</h4>
-        <p style="font-size:0.875rem;color:var(--text-2);line-height:1.65;">I'll reply from <strong>security@orbtech.in</strong> within 24 hours with your invite code.</p>
+        <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:8px;">Thanks - got it.</h4>
+        <p style="font-size:0.875rem;color:var(--text-2);line-height:1.65;">I read every message that comes through.</p>
       </div>
       <form class="audit-form" id="audit-form" action="https://formspree.io/f/mbdwavbo" method="POST">
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
         <div class="field-row">
-          <div class="field"><label for="fn">Your name <span class="req">*</span></label><input class="form-input" id="fn" type="text" name="name" placeholder="Full name" required></div>
-          <div class="field"><label for="fe">Work email <span class="req">*</span></label><input class="form-input" id="fe" type="email" name="email" placeholder="you@company.com" required></div>
+          <div class="field"><label for="fn">Name</label><input class="form-input" id="fn" type="text" name="name" placeholder="Full name"></div>
+          <div class="field"><label for="fe">Email <span style="color:var(--text-3);font-weight:400;">- so I can reply</span></label><input class="form-input" id="fe" type="email" name="email" placeholder="you@company.com"></div>
         </div>
-        <div class="field"><label for="fc">Company / Project</label><input class="form-input" id="fc" type="text" name="company" placeholder="Fintech startup, research project..."></div>
-        <div class="field"><label for="fm">What are you testing?</label><select class="form-input" id="fm" name="model_type"><option value="">Select what you're testing</option><option>LLM / GenAI app</option><option>sklearn (.pkl)</option><option>XGBoost (.json)</option><option>LightGBM (.txt)</option><option>Keras / TensorFlow (.h5)</option></select></div>
-        <div class="field"><label for="fmsg">What does your app or model do?</label><textarea class="form-input" id="fmsg" name="message" rows="3" placeholder="e.g. Support chatbot with RAG over customer docs, or a fraud detection model..."></textarea></div>
-        <button type="submit" class="submit-btn" id="submit-btn">Send audit request <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg></button>
+        <div class="field"><label for="ft">Feedback type</label><select class="form-input" id="ft" name="feedback_type"><option value="">Select...</option><option>General feedback</option><option>Bug report</option><option>Feature request</option><option>Pricing</option><option>Something else</option></select></div>
+        <div class="field"><label for="fmsg">Your feedback <span class="req">*</span></label><textarea class="form-input" id="fmsg" name="message" rows="3" placeholder="What worked, what broke, what you'd want next..." required></textarea></div>
+        <button type="submit" class="submit-btn" id="submit-btn">Send feedback <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg></button>
       </form>
     </div>
   </div>
@@ -484,7 +478,7 @@ if (auditForm) {
       else throw new Error();
     } catch {
       btn.disabled = false;
-      btn.innerHTML = 'Send audit request <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>';
+      btn.innerHTML = 'Send feedback <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>';
       alert('Something went wrong. Please email security@orbtech.in directly.');
     }
   });
