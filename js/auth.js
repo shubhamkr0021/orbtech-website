@@ -40,9 +40,6 @@ function handoffToStreamlit(accessToken) {
 // handle specially (offering a resend-verification action).
 function friendlyAuthError(error) {
     const msg = ((error && error.message) || "").toLowerCase();
-    if (msg.includes("already registered") || msg.includes("user already registered")) {
-        return "An account with this email already exists. Try logging in instead.";
-    }
     if (msg.includes("invalid login credentials")) {
         return "Incorrect email or password.";
     }
@@ -260,7 +257,7 @@ function initSignupPage() {
                 statusEl.className = "error";
                 return;
             }
-            statusEl.textContent = "Check your email to verify your account, then log in.";
+            statusEl.textContent = "If this email isn't already registered, we've sent a confirmation link — please check your inbox to verify your account, then log in.";
             statusEl.className = "success";
             form.reset();
         } catch (err) {
