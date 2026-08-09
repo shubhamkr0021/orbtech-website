@@ -224,6 +224,14 @@ const PRO_LIMIT  = 100;  // per calendar month (UTC)
 // /create-subscription and /razorpay-webhook.
 const API_URL = "https://orbtech-api.onrender.com";
 
+// Opportunistic warm-up: orbtech-api sleeps on Render's free tier, so a
+// fire-and-forget ping while the user is still reading the page gives it
+// a head start waking up before they click Upgrade. Deliberately silent
+// on failure and never awaited -- this must never block or affect page
+// render, and a failed ping here isn't worth surfacing (the checkout
+// flow's own progressive UX below handles a still-cold server).
+fetch(`${API_URL}/health`).catch(() => {});
+
 // TEST MODE Razorpay key id -- the PUBLIC key (safe client-side, it's not
 // the secret).
 const RAZORPAY_KEY_ID = "rzp_test_TM4BnEmljkw8Or";
@@ -313,11 +321,24 @@ async function startCheckout(){
     return;
   }
 
+  // orbtech-api sleeps on Render's free tier after inactivity and can take
+  // up to ~50s to wake -- without this, a cold request just hangs on
+  // "Preparing checkout..." and reads as broken to a first-time evaluator.
+  // Most warm requests finish well under 4s, so this reassurance message
+  // only ever appears for the minority of calls that hit a real cold start.
+  const coldStartNotice = setTimeout(() => {
+    note.textContent = "Waking up the server — this can take up to a minute on the first request…";
+  }, 4000);
+
+  const controller = new AbortController();
+  const hardTimeout = setTimeout(() => controller.abort(), 60000);
+
   let subscriptionId;
   try {
     const res = await fetch(`${API_URL}/create-subscription`, {
       method: "POST",
       headers: { "Authorization": `Bearer ${session.access_token}` },
+      signal: controller.signal,
     });
     if (res.status === 401){
       window.location.href = LOGIN_URL;
@@ -332,8 +353,13 @@ async function startCheckout(){
     console.error(e);
     btn.disabled = false;
     btn.textContent = "Upgrade to Pro";
-    note.textContent = "Couldn't start checkout. Please try again.";
+    note.textContent = (e.name === "AbortError")
+      ? "The server is taking longer than expected — please try again in a moment."
+      : "Couldn't start checkout. Please try again.";
     return;
+  } finally {
+    clearTimeout(coldStartNotice);
+    clearTimeout(hardTimeout);
   }
 
   const rzp = new Razorpay({
