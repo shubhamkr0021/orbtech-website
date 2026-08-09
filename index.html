@@ -163,6 +163,16 @@ section { position: relative; z-index: 1; padding: 100px 5%; }
 .compliance-articles { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 6px; }
 .article-pill { font-family: var(--mono); font-size: 0.65rem; padding: 3px 8px; background: rgba(255,255,255,0.04); color: var(--text-3); border-radius: 4px; border: 1px solid var(--border); }
 
+.faq { background: var(--bg-2); }
+.faq-list { max-width: 760px; margin: 56px auto 0; display: flex; flex-direction: column; gap: 10px; }
+.faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; transition: border-color 0.3s; }
+.faq-item[open] { border-color: rgba(242,95,31,0.25); }
+.faq-item summary { list-style: none; cursor: pointer; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 16px; font-weight: 600; font-size: 0.92rem; color: var(--text); }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: '+'; flex-shrink: 0; font-size: 1.2rem; color: var(--orange); transition: transform 0.3s; line-height: 1; }
+.faq-item[open] summary::after { transform: rotate(45deg); }
+.faq-item .faq-answer { padding: 0 24px 20px; font-size: 0.85rem; color: var(--text-2); line-height: 1.7; }
+
 .about-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; margin-top: 56px; }
 .about-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px; transition: all 0.4s; }
 .about-card:hover { border-color: rgba(242,95,31,0.2); }
@@ -261,6 +271,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
     <li><a href="#checks">Checks</a></li>
     <li><a href="#pricing">Pricing</a></li>
     <li><a href="#about">About</a></li>
+    <li><a href="#faq">FAQ</a></li>
     <li><a href="case-study.html">Case Study</a></li>
     <li><a href="login/">Log in</a></li>
     <li><a href="signup/" class="nav-cta">Sign up →</a></li>
@@ -427,6 +438,38 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
         <div class="field"><label for="fmsg">Your feedback <span class="req">*</span></label><textarea class="form-input" id="fmsg" name="message" rows="3" placeholder="What worked, what broke, what you'd want next..." required></textarea></div>
         <button type="submit" class="submit-btn" id="submit-btn">Send feedback <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg></button>
       </form>
+    </div>
+  </div>
+</section>
+
+<section class="faq" id="faq">
+  <div class="container">
+    <div class="reveal" style="text-align:center;"><div class="section-tag" style="justify-content:center;"><span style="display:inline-block;width:24px;height:1px;background:var(--orange);"></span>FAQ</div><h2 class="section-title">Frequently asked questions</h2></div>
+    <div class="faq-list">
+      <details class="faq-item reveal reveal-delay-1">
+        <summary>What models and endpoints does OrbTech support?</summary>
+        <div class="faq-answer">OrbTech tests any OpenAI-compatible chat-completions endpoint - including OpenAI, Azure OpenAI, and compatible API gateways. You point OrbTech at your endpoint URL and model name, and it runs its adversarial test suite against it. For classical machine-learning models, OrbTech's ML scanner supports scikit-learn models.</div>
+      </details>
+      <details class="faq-item reveal reveal-delay-2">
+        <summary>Is my data stored? What about my API key?</summary>
+        <div class="faq-answer">Your API key is held in memory only for the duration of the scan - it is never written to disk, never stored in a database, and never logged. It's discarded the moment the scan finishes. Your scan reports are stored securely in your own isolated, access-controlled space, so only you can see your results. We don't store payment card details - payments are handled entirely by Razorpay.</div>
+      </details>
+      <details class="faq-item reveal reveal-delay-3">
+        <summary>Is it safe to point OrbTech at my production LLM?</summary>
+        <div class="faq-answer">Yes. OrbTech only sends prompts to the endpoint you specify and reads the responses that come back - it doesn't modify your system, change your configuration, or persist anything about your model. The adversarial prompts are the same kinds of inputs a real attacker would try, run in a controlled way so you find weaknesses before they do. Your API key stays in memory for the scan only, and your prompts and the model's responses are used solely to generate your report.</div>
+      </details>
+      <details class="faq-item reveal reveal-delay-4">
+        <summary>What happens after my free scan?</summary>
+        <div class="faq-answer">The free tier includes one scan. After that, you can upgrade to Pro for unlimited scans, full scan history, API access, and priority support. Your account and any reports you've already generated stay accessible whether or not you upgrade.</div>
+      </details>
+      <details class="faq-item reveal reveal-delay-1">
+        <summary>How long are my reports kept?</summary>
+        <div class="faq-answer">Your reports are stored securely and remain accessible in your dashboard, so you can revisit past scans whenever you need them.</div>
+      </details>
+      <details class="faq-item reveal reveal-delay-2">
+        <summary>How do I upgrade to Pro?</summary>
+        <div class="faq-answer">Click "Upgrade to Pro" from your billing page and we'll get you set up. We're currently onboarding Pro customers directly to make sure everything's tailored to your needs - just reach out and we'll take care of the rest.</div>
+      </details>
     </div>
   </div>
 </section>
