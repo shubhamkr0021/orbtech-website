@@ -174,7 +174,7 @@
             <div class="plan-head">Free <span class="price">₹0</span><span id="tag-free"></span></div>
           </th>
           <th class="col-pro">
-            <div class="plan-head">Pro <span class="price">₹4,999/mo</span><span id="tag-pro"></span></div>
+            <div class="plan-head">Pro <span class="price">₹2,999/mo</span><span id="tag-pro"></span></div>
           </th>
         </tr>
       </thead>
@@ -282,7 +282,7 @@ function renderPlan(plan, used){
   const badge = $("plan-badge");
   badge.textContent = isPro ? "Pro" : "Free";
   badge.className = "plan-badge " + (isPro ? "pro" : "free");
-  $("plan-price").innerHTML = isPro ? `<b>₹4,999</b> / month` : `<b>₹0</b> — free forever`;
+  $("plan-price").innerHTML = isPro ? `<b>₹2,999</b> / month` : `<b>₹0</b> — free forever`;
 
   $("usage-num").innerHTML = `${used}<span class="of"> / ${limit}</span>`;
   $("usage-label").textContent = isPro ? "scans this month" : "lifetime scan";
@@ -301,7 +301,7 @@ function renderPlan(plan, used){
   } else {
     row.innerHTML = `
       <button id="upgrade-btn" class="btn-primary">Upgrade to Pro</button>
-      <span class="upgrade-note" id="upgrade-note">₹4,999/month · 100 scans, unlimited history.</span>`;
+      <span class="upgrade-note" id="upgrade-note">₹2,999/month · 100 scans, unlimited history.</span>`;
   }
 }
 
