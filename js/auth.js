@@ -181,6 +181,8 @@ function initSignupPage() {
     const submitBtn = document.getElementById("submit-btn");
     const passwordInput = document.getElementById("password");
     const checklistItems = document.querySelectorAll("#pw-checklist li");
+    const successPanel = document.getElementById("signup-success");
+    const successMessage = document.getElementById("signup-success-message");
 
     // Live checklist + submit gate -- password-only. Name/email keep their
     // own independent checks inside the submit handler below, untouched;
@@ -257,9 +259,17 @@ function initSignupPage() {
                 statusEl.className = "error";
                 return;
             }
-            statusEl.textContent = "If this email isn't already registered, we've sent a confirmation link — please check your inbox to verify your account, then log in.";
-            statusEl.className = "success";
             form.reset();
+            form.style.display = "none";
+            // Neutral wording, unchanged from the plain-text version -- do
+            // NOT make this a definite "we've sent you an email" claim. It
+            // must stay true for BOTH a new signup and an already-registered
+            // email (Supabase returns success-shaped data for both when
+            // email confirmation is on), or this reopens the enumeration
+            // leak Option 1 was chosen to close. The panel is visually
+            // celebratory; the words stay exactly as neutral as before.
+            successMessage.textContent = "If this email isn't already registered, we've sent a confirmation link — please check your inbox to verify your account, then log in.";
+            successPanel.style.display = "block";
         } catch (err) {
             statusEl.textContent = "Unexpected error. Please try again.";
             statusEl.className = "error";
