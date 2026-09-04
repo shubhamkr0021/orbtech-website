@@ -259,6 +259,14 @@ function initSignupPage() {
                 statusEl.className = "error";
                 return;
             }
+
+            // GA4: track successful signup
+            if (typeof gtag === 'function') {
+                gtag('event', 'sign_up', {
+                    method: 'email'
+                });
+            }
+            
             form.reset();
             form.style.display = "none";
             // Neutral wording, unchanged from the plain-text version -- do
