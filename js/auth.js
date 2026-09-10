@@ -145,6 +145,16 @@ function initLoginPage() {
             // The handoff (setHandoffCookie/handoffToStreamlit) now happens
             // from the dashboard's "Start new scan" action instead — see
             // dashboard.html.
+            const pendingRegistrationUserId = localStorage.getItem("orb_pending_registration");
+            if (pendingRegistrationUserId &&
+                data &&
+                data.user &&
+                pendingRegistrationUserId === data.user.id) {
+                if (typeof fbq === "function") {
+                    fbq('track', 'CompleteRegistration');
+                }
+                localStorage.removeItem("orb_pending_registration");
+            }
             window.location.href = "../dashboard.html";
         } catch (err) {
             statusEl.textContent = "Unexpected error. Please try again.";
@@ -246,7 +256,7 @@ function initSignupPage() {
             // inserts the profiles row itself, so this signup flow must
             // not also insert one (primary key collision). See the report
             // for the follow-up needed if profiles should carry the name.
-            const { error } = await supabaseClient.auth.signUp({
+            const { data, error } = await supabaseClient.auth.signUp({
                 email,
                 password,
                 options: {
@@ -265,6 +275,9 @@ function initSignupPage() {
                 gtag('event', 'sign_up', {
                     method: 'email'
                 });
+            }
+            if (data && data.user && data.user.id) {
+                localStorage.setItem("orb_pending_registration", data.user.id);
             }
             
             form.reset();
