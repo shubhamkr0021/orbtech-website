@@ -37,13 +37,9 @@ src="https://www.facebook.com/tr?id=27978353121859964&ev=PageView&noscript=1"
   ============================================================================
   OrbTech Dashboard — BILLING (Phase C, page 3 of 4)
   ----------------------------------------------------------------------------
-  Stripped for v1 (no payment gateway yet — Razorpay comes after first paying
-  client). Shows: current plan, usage (same stateless count as Home/Reports),
-  the Free vs Pro comparison, and an Upgrade CTA.
-  NO invoice list, NO card entry — those get built when there's a gateway.
-
-  UPGRADE_CONTACT below is a mailto for now. When a booking form / Calendly
-  exists, change that ONE constant to the URL — nothing else needs to change.
+  Shows: current plan, usage (same stateless count as Home/Reports), the Free
+  vs Pro comparison, and an Upgrade CTA backed by Razorpay Checkout.
+  NO invoice list, NO card entry — payments are handled by Razorpay Checkout.
   ============================================================================
 -->
 
@@ -264,7 +260,7 @@ fetch(`${API_URL}/health`).catch(() => {});
 // the secret).
 const RAZORPAY_KEY_ID = "rzp_test_TM4BnEmljkw8Or";
 
-// ---- Contact link kept only for the Pro "thank you" state below. ----
+// ---- Contact link for the Pro "thank you" state below. ----
 const UPGRADE_CONTACT = "mailto:security@orbtech.in?subject=Upgrade%20to%20OrbTech%20Pro&body=Hi%2C%20I%27d%20like%20to%20upgrade%20my%20OrbTech%20account%20to%20Pro.";
 
 const $ = (id) => document.getElementById(id);
@@ -444,27 +440,8 @@ async function pollForProPlan(userId){
   note.textContent = "Still activating — this can take a minute. Refresh the page to check.";
 }
 
-// TEMP: mailto upgrade until Razorpay live-mode KYC done. Swap back to
-// startCheckout() to re-enable self-serve checkout.
-async function upgradeViaMailto(){
-  let email = "", userId = "";
-  try {
-    const { data:{ session } } = await supabaseClient.auth.getSession();
-    if (session && session.user){
-      email  = session.user.email || "";
-      userId = session.user.id || "";
-    }
-  } catch (e){
-    console.error(e); // fail-soft -- missing info is not a reason to block the mailto
-  }
-  const bodyLines = ["I'd like to upgrade to Pro.", "",
-    email  ? `Account email: ${email}` : "",
-    userId ? `User ID: ${userId}` : ""].filter(Boolean).join("\n");
-  window.location.href = `mailto:security@orbtech.in?subject=${encodeURIComponent("OrbTech Pro upgrade request")}&body=${encodeURIComponent(bodyLines)}`;
-}
-
 document.addEventListener("click", (e) => {
-  if (e.target && e.target.id === "upgrade-btn") upgradeViaMailto(); // TEMP: mailto upgrade until Razorpay live-mode KYC done. Swap back to startCheckout() to re-enable self-serve checkout.
+  if (e.target && e.target.id === "upgrade-btn") startCheckout();
 });
 
 (async function init(){
