@@ -368,11 +368,20 @@ async function startCheckout(){
       window.location.href = LOGIN_URL;
       return;
     }
-    if (!res.ok){
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || `Server returned ${res.status}`);
+    const responseBody = await res.json().catch(() => ({}));
+    if (res.status === 202 && responseBody.status === "in_progress"){
+      btn.disabled = false;
+      btn.textContent = "Upgrade to Pro";
+      note.textContent = "Another checkout is already in progress. Please wait and try again later.";
+      return;
     }
-    ({ subscription_id: subscriptionId } = await res.json());
+    if (!res.ok){
+      throw new Error(responseBody.detail || `Server returned ${res.status}`);
+    }
+    ({ subscription_id: subscriptionId } = responseBody);
+    if (!subscriptionId){
+      throw new Error("Checkout did not return a subscription ID.");
+    }
   } catch (e){
     console.error(e);
     btn.disabled = false;
