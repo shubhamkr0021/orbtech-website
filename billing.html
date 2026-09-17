@@ -144,6 +144,12 @@ src="https://www.facebook.com/tr?id=27978353121859964&ev=PageView&noscript=1"
   .banner { max-width:980px; margin:18px auto 0; padding:14px 18px; border-radius:12px; font-size:14px; }
   .banner.error { background:#FCEBEA; color:var(--danger); border:1px solid #F3C9C6; }
 
+  .debug-panel { margin-top:22px; }
+  .debug-output { margin:14px 0 0; padding:14px; max-height:320px; overflow:auto;
+    border:1px solid var(--line); border-radius:9px; background:var(--paper);
+    color:var(--ink); font:12px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    white-space:pre-wrap; word-break:break-word; }
+
   @media (prefers-reduced-motion: reduce){ * { animation:none !important; transition:none !important; } }
 </style>
 </head>
@@ -237,6 +243,13 @@ src="https://www.facebook.com/tr?id=27978353121859964&ev=PageView&noscript=1"
       </div>
     </div>
   </section>
+
+  <!-- TODO: Remove this temporary Razorpay diagnostic control after diagnosis. -->
+  <section class="card debug-panel" aria-labelledby="debug-razorpay-heading">
+    <h2 id="debug-razorpay-heading">Temporary diagnostics</h2>
+    <button id="debug-razorpay-plan-btn" class="btn-primary" type="button">Debug Razorpay Plan</button>
+    <pre id="debug-razorpay-plan-output" class="debug-output" hidden aria-live="polite"></pre>
+  </section>
 </main>
 
 <script>
@@ -326,6 +339,45 @@ function renderPlan(plan, used){
     row.innerHTML = `
       <button id="upgrade-btn" class="btn-primary">Upgrade to Pro</button>
       <span class="upgrade-note" id="upgrade-note">₹2,999/month · 100 scans, unlimited history.</span>`;
+  }
+}
+
+// TODO: Remove this temporary read-only Razorpay plan diagnostic after diagnosis.
+// It deliberately retrieves the live shared Supabase session at click time and
+// never logs, stores, or displays its access token.
+async function debugRazorpayPlan(){
+  const button = $("debug-razorpay-plan-btn");
+  const output = $("debug-razorpay-plan-output");
+  button.disabled = true;
+  button.textContent = "Loading…";
+  output.hidden = false;
+  output.textContent = "Requesting Razorpay plan diagnostics…";
+
+  try {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (error || !session || !session.access_token){
+      output.textContent = JSON.stringify({ error: "No active session. Please sign in again." }, null, 2);
+      return;
+    }
+
+    const response = await fetch(`${API_URL}/debug/razorpay-plan`, {
+      method: "GET",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    const body = await response.json().catch(() => ({
+      success: false,
+      status_code: response.status,
+      error_description: "The diagnostic endpoint returned an invalid response.",
+    }));
+    output.textContent = JSON.stringify(body, null, 2);
+  } catch (_error){
+    output.textContent = JSON.stringify({
+      success: false,
+      error_description: "Unable to reach the diagnostic endpoint.",
+    }, null, 2);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Debug Razorpay Plan";
   }
 }
 
@@ -452,6 +504,8 @@ async function pollForProPlan(userId){
 document.addEventListener("click", (e) => {
   if (e.target && e.target.id === "upgrade-btn") startCheckout();
 });
+
+$("debug-razorpay-plan-btn").addEventListener("click", debugRazorpayPlan);
 
 (async function init(){
   $("signout").addEventListener("click", async ()=>{
