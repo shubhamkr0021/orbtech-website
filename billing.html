@@ -287,6 +287,16 @@ async function loadPlan(userId){
   return (data.plan || "free").toLowerCase();
 }
 
+async function loadSubscription(userId){
+  const { data, error } = await supabaseClient
+    .from("subscriptions")
+    .select("status, cancel_at_period_end, current_period_end")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
 async function countUsage(plan){
   const since = plan === "pro" ? monthStartUTCISO() : null;
   const q = (t) => {
@@ -300,7 +310,14 @@ async function countUsage(plan){
   return (ml.count || 0) + (llm.count || 0);
 }
 
-function renderPlan(plan, used){
+function periodEndLabel(value){
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "the end of your current billing period"
+    : date.toLocaleDateString(undefined, { year:"numeric", month:"long", day:"numeric" });
+}
+
+function renderPlan(plan, used, subscription){
   const isPro = plan === "pro";
   const limit = isPro ? PRO_LIMIT : FREE_LIMIT;
 
@@ -320,10 +337,20 @@ function renderPlan(plan, used){
   $("tag-free").innerHTML = isPro ? "" : `<span class="current-tag">Your plan</span>`;
   $("tag-pro").innerHTML  = isPro ? `<span class="current-tag">Your plan</span>` : "";
 
-  // Upgrade CTA — only shown to Free users. Pro users see a thank-you.
+  // Upgrade CTA — only shown to Free users. Active Pro users can schedule
+  // cancellation; the webhook remains the source of truth for that state.
   const row = $("upgrade-row");
   if (isPro){
-    row.innerHTML = `<span class="upgrade-note">You're on Pro — thanks for supporting OrbTech. Need anything? <a href="${UPGRADE_CONTACT}" style="color:var(--orange-dim);font-weight:700;text-decoration:none;">Get in touch</a>.</span>`;
+    if (subscription && subscription.cancel_at_period_end){
+      row.innerHTML = `<span class="upgrade-note">Your subscription is set to end after ${periodEndLabel(subscription.current_period_end)}. Pro remains active until then.</span>`;
+    } else if (subscription && subscription.status === "active"){
+      const end = periodEndLabel(subscription.current_period_end);
+      row.innerHTML = `
+        <button id="cancel-subscription-btn" class="btn-primary">Cancel Subscription</button>
+        <span class="upgrade-note" id="cancel-note">Pro remains active until ${end}.</span>`;
+    } else {
+      row.innerHTML = `<span class="upgrade-note">You're on Pro — thanks for supporting OrbTech. Need anything? <a href="${UPGRADE_CONTACT}" style="color:var(--orange-dim);font-weight:700;text-decoration:none;">Get in touch</a>.</span>`;
+    }
   } else {
     row.innerHTML = `
       <button id="upgrade-btn" class="btn-primary">Upgrade to Pro</button>
@@ -440,8 +467,7 @@ async function pollForProPlan(userId){
     try {
       const plan = await loadPlan(userId);
       if (plan === "pro"){
-        const used = await countUsage(plan);
-        renderPlan(plan, used);
+        await refreshBilling(userId);
         return;
       }
     } catch (e){
@@ -451,8 +477,67 @@ async function pollForProPlan(userId){
   note.textContent = "Still activating — this can take a minute. Refresh the page to check.";
 }
 
+async function refreshBilling(userId){
+  const plan = await loadPlan(userId);
+  const [used, subscription] = await Promise.all([
+    countUsage(plan),
+    loadSubscription(userId),
+  ]);
+  renderPlan(plan, used, subscription);
+}
+
+async function cancelSubscription(){
+  const btn = $("cancel-subscription-btn");
+  const note = $("cancel-note");
+  if (!btn || !note) return;
+
+  const { data:{ session }, error } = await supabaseClient.auth.getSession();
+  if (error || !session){
+    window.location.href = LOGIN_URL;
+    return;
+  }
+
+  let subscription;
+  try {
+    subscription = await loadSubscription(session.user.id);
+  } catch (e){
+    console.error(e);
+    note.textContent = "Couldn't load your subscription. Please refresh and try again.";
+    return;
+  }
+  const end = periodEndLabel(subscription && subscription.current_period_end);
+  if (!window.confirm(`Cancel your subscription? Pro remains active until ${end}.`)) return;
+
+  btn.disabled = true;
+  btn.textContent = "Scheduling cancellation…";
+  note.textContent = "Scheduling your cancellation…";
+  try {
+    const res = await fetch(`${API_URL}/cancel-subscription`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${session.access_token}` },
+    });
+    if (res.status === 401){
+      window.location.href = LOGIN_URL;
+      return;
+    }
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.detail || `Server returned ${res.status}`);
+
+    // Do not alter billing state locally: re-read the webhook-owned record.
+    await refreshBilling(session.user.id);
+    const refreshedNote = $("cancel-note");
+    if (refreshedNote) refreshedNote.textContent = "Cancellation requested. Your subscription status will update shortly.";
+  } catch (e){
+    console.error(e);
+    btn.disabled = false;
+    btn.textContent = "Cancel Subscription";
+    note.textContent = "Couldn't schedule cancellation. Please try again.";
+  }
+}
+
 document.addEventListener("click", (e) => {
   if (e.target && e.target.id === "upgrade-btn") startCheckout();
+  if (e.target && e.target.id === "cancel-subscription-btn") cancelSubscription();
 });
 
 (async function init(){
@@ -473,9 +558,7 @@ document.addEventListener("click", (e) => {
   $("whoami-email").textContent = session.user.email || "";
 
   try {
-    const plan = await loadPlan(session.user.id);
-    const used = await countUsage(plan);
-    renderPlan(plan, used);
+    await refreshBilling(session.user.id);
   } catch (e){
     console.error(e);
     showError("Couldn't load your billing details. Please refresh, or sign in again if this continues.");
