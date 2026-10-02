@@ -150,7 +150,7 @@ function initLoginPage() {
                 data &&
                 data.user &&
                 pendingRegistrationUserId === data.user.id) {
-                if (typeof fbq === "function") {
+                if (window.OrbConsent && window.OrbConsent.hasConsent("marketing") && typeof fbq === "function") {
                     fbq('track', 'CompleteRegistration');
                 }
                 localStorage.removeItem("orb_pending_registration");
@@ -271,9 +271,10 @@ function initSignupPage() {
             }
 
             // GA4: track successful signup
-            if (typeof gtag === 'function') {
+            if (window.OrbConsent && window.OrbConsent.hasConsent("analytics") && typeof gtag === 'function') {
                 gtag('event', 'sign_up', {
-                    method: 'email'
+                    method: 'email',
+                    page_location: window.OrbConsent.getPageLocation()
                 });
             }
             if (data && data.user && data.user.id) {
@@ -340,6 +341,8 @@ function initResetPasswordPage() {
     // flow lives here instead.
     supabaseClient.auth.onAuthStateChange((event, _session) => {
         if (event === "PASSWORD_RECOVERY") {
+            history.replaceState(null, document.title, window.location.pathname + window.location.search);
+            window.dispatchEvent(new Event("orb:recovery-ready"));
             requestSection.style.display = "none";
             updateSection.style.display = "block";
         }
