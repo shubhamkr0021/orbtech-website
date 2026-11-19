@@ -145,7 +145,7 @@
 <main>
   <div class="head">
     <h1>Billing</h1>
-    <p>Your plan and usage. Upgrade whenever you're ready to scan more.</p>
+    <p>Your plan and usage. Upgrade for additional LLM scans. New ML scans are temporarily unavailable.</p>
   </div>
 
   <div class="status-grid">
@@ -166,6 +166,8 @@
     </section>
   </div>
 
+  <aside role="note" aria-label="Scanner availability" style="border:1px solid #F25F1F;border-radius:10px;padding:16px;margin:20px 0;text-align:left;"><p style="margin:0;">ML Security Scanner is temporarily unavailable while we strengthen our model execution security. Existing stored scan reports remain accessible from your dashboard.</p><p style="margin:8px 0 0;"><strong>LLM Security Scanner remains available.</strong></p></aside>
+  <p>New scans currently cover LLM testing only. Historical ML and LLM scans count toward the applicable allowance; suspension does not reset usage. LLM API access requires a separately provisioned API key.</p>
   <section class="card" style="padding:0; overflow:hidden;">
     <table class="compare">
       <thead>
@@ -181,9 +183,9 @@
       </thead>
       <tbody>
         <tr>
-          <td class="feat">Scans</td>
-          <td class="val">1 lifetime</td>
-          <td class="val col-pro">100 / month</td>
+          <td class="feat">Scan allowance</td>
+          <td class="val">1 scan for the lifetime of your account.</td>
+          <td class="val col-pro">Up to 100 scans per calendar month</td>
         </tr>
         <tr>
           <td class="feat">PDF report</td>
@@ -191,14 +193,9 @@
           <td class="val col-pro"><span class="yes">Full</span></td>
         </tr>
         <tr>
-          <td class="feat">Report history</td>
-          <td class="val">7 days</td>
-          <td class="val col-pro">Unlimited</td>
-        </tr>
-        <tr>
-          <td class="feat">Delete reports</td>
-          <td class="val"><span class="no">No</span></td>
-          <td class="val col-pro"><span class="yes">Yes</span></td>
+          <td class="feat">Stored report access</td>
+          <td class="val">Existing stored reports</td>
+          <td class="val col-pro">Existing stored reports</td>
         </tr>
         <tr>
           <td class="feat">Priority support</td>
@@ -301,10 +298,10 @@ function renderPlan(plan, used, subscription){
   const badge = $("plan-badge");
   badge.textContent = isPro ? "Pro" : "Free";
   badge.className = "plan-badge " + (isPro ? "pro" : "free");
-  $("plan-price").innerHTML = isPro ? `<b>₹2,999</b> / month` : `<b>₹0</b> — free forever`;
+  $("plan-price").innerHTML = isPro ? `<b>₹2,999</b> / month` : `<b>₹0</b> — 1 scan for the lifetime of your account.`;
 
   $("usage-num").innerHTML = `${used}<span class="of"> / ${limit}</span>`;
-  $("usage-label").textContent = isPro ? "scans this month" : "lifetime scan";
+  $("usage-label").textContent = isPro ? "scans this calendar month" : "1 scan for the lifetime of your account.";
   const pct = Math.min(100, Math.round((used/limit)*100));
   $("meter-fill").style.width = pct + "%";
   $("meter").classList.toggle("full", used >= limit);
@@ -330,7 +327,7 @@ function renderPlan(plan, used, subscription){
   } else {
     row.innerHTML = `
       <button id="upgrade-btn" class="btn-primary">Upgrade to Pro</button>
-      <span class="upgrade-note" id="upgrade-note">₹2,999/month · 100 scans, unlimited history.</span>`;
+      <span class="upgrade-note" id="upgrade-note">₹2,999/month · up to 100 scans per calendar month. New scans currently cover LLM testing only. Existing stored reports remain accessible.</span>`;
   }
 }
 

@@ -215,6 +215,8 @@
   <div class="welcome">
     <h1 id="welcome-line" class="loading-shimmer">Welcome back</h1>
     <p>Here's where your account and scans stand.</p>
+    <aside role="note" aria-label="Scanner availability" style="border:1px solid #F25F1F;border-radius:10px;padding:16px;margin:20px 0;text-align:left;"><p style="margin:0;">ML Security Scanner is temporarily unavailable while we strengthen our model execution security. Existing stored scan reports remain accessible from your dashboard.</p><p style="margin:8px 0 0;"><strong>LLM Security Scanner remains available.</strong></p></aside>
+    <p>New scans currently cover LLM testing only. Historical ML and LLM scans count toward the applicable allowance; suspension does not reset usage.</p>
   </div>
 
   <div class="grid">
@@ -243,7 +245,7 @@
       <h2 id="h-rep">Recent reports</h2>
       <div id="reports"><div class="empty">Loading…</div></div>
       <div class="cta-row">
-        <a href="#" class="btn-primary" id="new-scan">Start new scan</a>
+        <a href="#" class="btn-primary" id="new-scan">Start LLM Scan</a>
         <a href="reports.html" style="font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;">View all reports →</a>
       </div>
     </section>
@@ -368,7 +370,7 @@ function renderPlanUsage(plan, used){
   badge.className = "plan-badge " + (isPro ? "pro" : "free");
 
   $("usage-num").innerHTML = `${used}<span class="of"> / ${limit}</span>`;
-  $("usage-label").textContent = isPro ? "scans this month" : "lifetime scan";
+  $("usage-label").textContent = isPro ? "scans this calendar month" : "1 scan for the lifetime of your account.";
 
   const pct = Math.min(100, Math.round((used/limit)*100));
   const meter = $("meter");
@@ -380,14 +382,14 @@ function renderPlanUsage(plan, used){
   if (remaining <= 0){
     note.className = "quota-note exceeded";
     note.innerHTML = isPro
-      ? `You've used all ${limit} scans this month. Resets on the 1st.`
-      : `You've used your free scan. <a class="up" href="billing.html">Upgrade to Pro</a> for 100 scans a month.`;
+      ? `You've used all ${limit} scans this calendar month. The next calendar-month allowance begins on the 1st.`
+      : `You've used your lifetime free scan. <a class="up" href="billing.html">Upgrade to Pro</a> for up to 100 scans per calendar month. New scans currently cover LLM testing only.`;
     const b = $("new-scan"); b.setAttribute("aria-disabled","true"); b.textContent = "Scan limit reached";
   } else {
     note.className = "quota-note";
     note.textContent = isPro
-      ? `${remaining} of ${limit} scans left this month.`
-      : `${remaining} free scan remaining.`;
+      ? `${remaining} of ${limit} scans left this calendar month for LLM testing.`
+      : `${remaining} lifetime free scan remaining for LLM testing.`;
   }
 }
 

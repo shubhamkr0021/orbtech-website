@@ -150,7 +150,7 @@
 <main>
   <div class="head">
     <h1>Reports</h1>
-    <p>Every scan you've run, newest first. Download the exact report that was generated.</p>
+    <p>Your historical LLM and ML scans remain visible, newest first. Download stored PDFs where available. Existing stored reports remain accessible during the ML suspension.</p>
   </div>
 
   <div class="card">
@@ -225,8 +225,8 @@ function render(rows){
 
   if (!rows.length){
     list.innerHTML = `<div class="empty"><b>No scans yet</b>
-      Your reports will appear here once you run a scan.
-      <div style="margin-top:14px"><a href="dashboard.html">Go to Home to start one →</a></div></div>`;
+      Your reports will appear here after an LLM scan is saved.
+      <div style="margin-top:14px"><a href="dashboard.html">Go to Home to start an LLM scan →</a></div></div>`;
     return;
   }
 
