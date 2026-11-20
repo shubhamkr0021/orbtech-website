@@ -335,6 +335,13 @@ function renderPlan(plan, used, subscription){
 // Trust boundary: this file only ever creates a subscription and opens
 // Checkout. It never sets plan='pro' itself -- only the signature-verified
 // /razorpay-webhook does that, server-side, after payment actually clears.
+function billingAuthErrorMessage(status){
+  if (status === 401) return "Your session could not be verified. Please sign out and sign in again.";
+  if (status === 503) return "The authentication service is temporarily unavailable. Please try again later.";
+  if (status === 500) return "We couldn't verify your session. Please try again later.";
+  return null;
+}
+
 async function startCheckout(){
   const btn  = $("upgrade-btn");
   const note = $("upgrade-note");
@@ -366,8 +373,11 @@ async function startCheckout(){
       headers: { "Authorization": `Bearer ${session.access_token}` },
       signal: controller.signal,
     });
-    if (res.status === 401){
-      window.location.href = LOGIN_URL;
+    const authError = billingAuthErrorMessage(res.status);
+    if (authError){
+      btn.disabled = false;
+      btn.textContent = "Upgrade to Pro";
+      note.textContent = authError;
       return;
     }
     const responseBody = await res.json().catch(() => ({}));
@@ -489,8 +499,11 @@ async function cancelSubscription(){
       method: "POST",
       headers: { "Authorization": `Bearer ${session.access_token}` },
     });
-    if (res.status === 401){
-      window.location.href = LOGIN_URL;
+    const authError = billingAuthErrorMessage(res.status);
+    if (authError){
+      btn.disabled = false;
+      btn.textContent = "Cancel Subscription";
+      note.textContent = authError;
       return;
     }
     const body = await res.json().catch(() => ({}));
