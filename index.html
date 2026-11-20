@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'; worker-src 'none'">
+<script src="/js/runtime-config.local.js"></script>
+<script src="/js/runtime-config.js"></script>
+<script src="/js/development.js"></script>
+<style>.reveal, .report-feature { opacity:1 !important; transform:none !important; } fieldset { border:0; margin:0; padding:0; min-width:0; } #development-status { padding:16px; border:1px solid #F25F1F; margin:16px; font-family:system-ui; }</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OrbTech – AI &amp; LLM Security Testing</title>
 <script src="/js/consent.js"></script>
@@ -40,8 +46,8 @@
   "url": "https://orbtech.in/"
 }
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -454,7 +460,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
     <div class="reveal"><div class="section-tag">Feedback</div><h2 class="section-title">Tell me what you think</h2><p class="section-sub">Tried OrbTech, or have thoughts on where it should go? Send it over - it lands straight in my inbox.</p></div>
     <div class="contact-options reveal">
       <a href="mailto:security@orbtech.in" class="contact-card"><span class="contact-icon">✉</span><div><div class="contact-card-label">Email</div><div class="contact-card-value">security@orbtech.in</div></div></a>
-      <a href="https://app.orbtech.in" class="contact-card"><span class="contact-icon">⚡</span><div><div class="contact-card-label">Live app</div><div class="contact-card-value">Try it now →</div></div></a>
+      <a href="#" data-dev-disabled="scanner" aria-disabled="true" class="contact-card"><span class="contact-icon">⚡</span><div><div class="contact-card-label">Live app</div><div class="contact-card-value">Try it now →</div></div></a>
       <a href="https://linkedin.com/in/shubhamkumar-orbtech" class="contact-card"><span class="contact-icon">in</span><div><div class="contact-card-label">LinkedIn</div><div class="contact-card-value">Shubham Kumar</div></div></a>
     </div>
     <div class="audit-box reveal">
@@ -464,7 +470,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
         <h4 style="font-size:1.1rem;font-weight:600;margin-bottom:8px;">Thanks - got it.</h4>
         <p style="font-size:0.875rem;color:var(--text-2);line-height:1.65;">I read every message that comes through.</p>
       </div>
-      <form class="audit-form" id="audit-form" action="https://formspree.io/f/mbdwavbo" method="POST">
+      <form class="audit-form" id="audit-form" method="POST"><fieldset disabled>
         <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;">
         <div class="field-row">
           <div class="field"><label for="fn">Name</label><input class="form-input" id="fn" type="text" name="name" placeholder="Full name"></div>
@@ -473,7 +479,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
         <div class="field"><label for="ft">Feedback type</label><select class="form-input" id="ft" name="feedback_type"><option value="">Select...</option><option>General feedback</option><option>Bug report</option><option>Feature request</option><option>Pricing</option><option>Something else</option></select></div>
         <div class="field"><label for="fmsg">Your feedback <span class="req">*</span></label><textarea class="form-input" id="fmsg" name="message" rows="3" placeholder="What worked, what broke, what you'd want next..." required></textarea></div>
         <button type="submit" class="submit-btn" id="submit-btn">Send feedback <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg></button>
-      </form>
+      </fieldset></form>
     </div>
   </div>
 </section>
@@ -515,247 +521,7 @@ footer { position: relative; z-index: 1; background: var(--bg-2); padding: 28px 
   <div class="footer-note">© 2026 OrbTech · security@orbtech.in</div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-// ── NAV ────────────────────────────────────────────────────────
-const navbar = document.getElementById('navbar');
-window.addEventListener('scroll', () => { navbar.classList.toggle('scrolled', window.scrollY > 40); }, { passive: true });
-function toggleMenu() {
-  const links = document.querySelector('.nav-links'), toggle = document.getElementById('nav-toggle');
-  const open = links.classList.toggle('open');
-  toggle.setAttribute('aria-expanded', open);
-  toggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
-}
-document.querySelectorAll('.nav-links a').forEach(a => a.addEventListener('click', () => {
-  document.querySelector('.nav-links').classList.remove('open');
-  document.getElementById('nav-toggle').setAttribute('aria-expanded', 'false');
-}));
 
-// ── SCROLL REVEAL ──────────────────────────────────────────────
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (e.isIntersecting) {
-      e.target.classList.add('visible');
-      if (e.target.classList.contains('report-mockup'))
-        document.querySelectorAll('.report-feature').forEach((f,i) => setTimeout(() => f.classList.add('visible'), i*150));
-    }
-  });
-}, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
-document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
-// ── FORM ───────────────────────────────────────────────────────
-const auditForm = document.getElementById('audit-form');
-if (auditForm) {
-  auditForm.addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('submit-btn');
-    btn.disabled = true; btn.textContent = 'Sending…';
-    try {
-      const res = await fetch(auditForm.action, { method:'POST', body: new FormData(auditForm), headers:{'Accept':'application/json'} });
-      if (res.ok) { auditForm.style.display='none'; document.getElementById('form-success').style.display='block'; }
-      else throw new Error();
-    } catch {
-      btn.disabled = false;
-      btn.innerHTML = 'Send feedback <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 7h10M7 2l5 5-5 5"/></svg>';
-      alert('Something went wrong. Please email security@orbtech.in directly.');
-    }
-  });
-}
-
-// ── THREE.JS ORB ───────────────────────────────────────────────
-window.addEventListener('load', function() {
-  if (typeof THREE === 'undefined') { console.error('Three.js failed to load'); return; }
-
-  const canvas  = document.getElementById('hero-canvas');
-  const section = document.getElementById('hero-section');
-
-  const W = window.innerWidth;
-  const H = Math.max(section.offsetHeight, window.innerHeight);
-
-  const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setSize(W, H);
-  renderer.setClearColor(0x000000, 0);
-
-  const scene  = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 100);
-  camera.position.set(0, 0, 5);
-
-  // Wireframe sphere
-  const wireOrb = new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1.1, 3),
-    new THREE.MeshBasicMaterial({ color: 0xF25F1F, wireframe: true, transparent: true, opacity: 0.22 })
-  );
-  scene.add(wireOrb);
-
-  // Inner core
-  const core = new THREE.Mesh(
-    new THREE.SphereGeometry(0.72, 32, 32),
-    new THREE.MeshPhongMaterial({ color: 0x0D1018, emissive: 0xF25F1F, emissiveIntensity: 0.08, transparent: true, opacity: 0.9 })
-  );
-  scene.add(core);
-
-  // Shell
-  const shell = new THREE.Mesh(
-    new THREE.SphereGeometry(1.02, 32, 32),
-    new THREE.MeshPhongMaterial({ color: 0xF25F1F, transparent: true, opacity: 0.05, side: THREE.BackSide })
-  );
-  scene.add(shell);
-
-  // Rings
-  function ring(r, t, rx, rz) {
-    const m = new THREE.Mesh(
-      new THREE.TorusGeometry(r, t, 2, 80),
-      new THREE.MeshBasicMaterial({ color: 0xF25F1F, transparent: true, opacity: 0.28 })
-    );
-    m.rotation.x = rx; m.rotation.z = rz;
-    scene.add(m); return m;
-  }
-  const ring1 = ring(1.35, 0.009, Math.PI/2, 0);
-  const ring2 = ring(1.5,  0.006, Math.PI/3, Math.PI/4);
-
-  // Particles
-  const N = 220, pos = new Float32Array(N*3);
-  for (let i=0; i<N; i++) {
-    const th = Math.random()*Math.PI*2, ph = Math.acos(2*Math.random()-1), r = 1.5+Math.random()*1.8;
-    pos[i*3]=r*Math.sin(ph)*Math.cos(th); pos[i*3+1]=r*Math.sin(ph)*Math.sin(th); pos[i*3+2]=r*Math.cos(ph);
-  }
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const particles = new THREE.Points(pGeo, new THREE.PointsMaterial({ color:0xF25F1F, size:0.03, transparent:true, opacity:0.6 }));
-  scene.add(particles);
-
-  // Scan ring
-  const scanMat = new THREE.MeshBasicMaterial({ color:0xFFD7B5, transparent:true, opacity:0 });
-  const scanLine = new THREE.Mesh(new THREE.TorusGeometry(1.12, 0.012, 2, 120), scanMat);
-  scene.add(scanLine);
-
-  // ── Shield texture (Canvas 2D) ──
-  const sc = document.createElement('canvas');
-  sc.width = sc.height = 256;
-  const ctx = sc.getContext('2d');
-
-  // Glow behind shield
-  const grd = ctx.createRadialGradient(128,128,20,128,128,110);
-  grd.addColorStop(0, 'rgba(242,95,31,0.25)');
-  grd.addColorStop(1, 'rgba(242,95,31,0)');
-  ctx.fillStyle = grd;
-  ctx.fillRect(0,0,256,256);
-
-  // Shield body
-  ctx.beginPath();
-  ctx.moveTo(128, 18);
-  ctx.lineTo(220, 56);
-  ctx.lineTo(220, 124);
-  ctx.quadraticCurveTo(220, 192, 128, 234);
-  ctx.quadraticCurveTo(36, 192, 36, 124);
-  ctx.lineTo(36, 56);
-  ctx.closePath();
-  ctx.fillStyle = 'rgba(242,95,31,0.12)';
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(242,95,31,1)';
-  ctx.lineWidth = 6;
-  ctx.stroke();
-
-  // Checkmark
-  ctx.beginPath();
-  ctx.moveTo(78, 128); ctx.lineTo(112, 162); ctx.lineTo(178, 94);
-  ctx.strokeStyle = '#F25F1F';
-  ctx.lineWidth = 14;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-
-  const shieldTex = new THREE.CanvasTexture(sc);
-  const shieldMat = new THREE.MeshBasicMaterial({ map: shieldTex, transparent: true, depthWrite: false });
-  const shieldMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.7), shieldMat);
-  shieldMesh.position.set(0, 0, 0.74);
-  scene.add(shieldMesh);
-
-  // Lights
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-  const pt = new THREE.PointLight(0xF25F1F, 2, 12);
-  pt.position.set(2, 2, 3);
-  scene.add(pt);
-
-  // Mouse parallax
-  let mx=0, my=0, cx=0, cy=0;
-  document.addEventListener('mousemove', e => {
-    mx = (e.clientX/window.innerWidth  - 0.5) * 0.5;
-    my = (e.clientY/window.innerHeight - 0.5) * 0.5;
-  }, { passive:true });
-
-  // Animate
-  let t=0, sT=0, active=true;
-  function animate() {
-    if (!active) return;
-    requestAnimationFrame(animate);
-    t += 0.004; sT += 0.012;
-
-    wireOrb.rotation.y = t*0.5;
-    wireOrb.rotation.x = t*0.18;
-    shell.rotation.y   = -t*0.3;
-    shell.rotation.z   = t*0.1;
-    ring1.rotation.z   = t*0.6;
-    ring2.rotation.z   = -t*0.4;
-    ring2.rotation.y   = t*0.2;
-    particles.rotation.y = t*0.08;
-    particles.rotation.x = t*0.04;
-    scanLine.rotation.x  = t*0.7;
-    scanMat.opacity = ((Math.sin(sT)+1)*0.5)*0.7;
-
-    const b = 1 + Math.sin(t*0.9)*0.025;
-    wireOrb.scale.setScalar(b);
-    shell.scale.setScalar(b);
-
-    shieldMesh.lookAt(camera.position);
-    shieldMat.opacity = 0.82 + Math.sin(t*1.2)*0.18;
-
-    cx += (mx-cx)*0.04; cy += (my-cy)*0.04;
-    wireOrb.rotation.y += cx*0.01;
-    wireOrb.rotation.x += -cy*0.01;
-
-    renderer.render(scene, camera);
-  }
-  animate();
-
-  document.addEventListener('visibilitychange', () => { active = !document.hidden; if (!document.hidden) animate(); });
-
-// ── TESTIMONIALS ──────────────────────────────────────────
-(function() {
-  var SUPABASE_URL = 'https://yvundbsygluaskpdvhup.supabase.co';
-  var SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl2dW5kYnN5Z2x1YXNrcGR2aHVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODE4NzIsImV4cCI6MjA5NTI1Nzg3Mn0.eWgL_vOmb1vH4P-LFsH7xk9KLEBvaOn-VipAnOFmBj8';
-  if (!SUPABASE_URL || SUPABASE_URL.indexOf('YOUR_') === 0) return;
-  fetch(SUPABASE_URL + '/rest/v1/testimonials?is_visible=eq.true&order=created_at.asc', {
-    headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY }
-  }).then(function(r) { return r.ok ? r.json() : []; }).then(function(data) {
-    if (!Array.isArray(data) || !data.length) return;
-    var strip = document.getElementById('t-strip');
-    var section = document.getElementById('testimonials');
-    data.forEach(function(t) {
-      var initials = (t.name || '?').split(' ').map(function(w) { return w[0] || ''; }).join('').slice(0, 2).toUpperCase();
-      var esc = function(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
-      var company = t.company ? ' &middot; ' + esc(t.company) : '';
-      var div = document.createElement('div');
-      div.className = 't-card reveal';
-      div.innerHTML = '<p class="t-quote">' + esc(t.quote) + '</p>' +
-        '<div class="t-author"><div class="t-avatar">' + initials + '</div>' +
-        '<div><div class="t-name">' + esc(t.name) + '</div>' +
-        '<div class="t-role">' + esc(t.role) + company + '</div></div></div>';
-      strip.appendChild(div);
-      observer.observe(div);
-    });
-    section.style.display = '';
-  }).catch(function() {});
-})();
-
-  window.addEventListener('resize', () => {
-    const nW=window.innerWidth, nH=Math.max(section.offsetHeight, window.innerHeight);
-    renderer.setSize(nW, nH);
-    camera.aspect = nW/nH;
-    camera.updateProjectionMatrix();
-  }, { passive:true });
-});
-</script>
 </body>
 </html>

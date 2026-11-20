@@ -1,0 +1,64 @@
+// Execute with node --test test_frontend_guardrails.cjs. No packages or network.
+const {test} = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const path = require('node:path');
+const deny = () => { throw new Error('Real network forbidden'); };
+global.fetch = deny;
+require('node:net').Socket.prototype.connect = deny;
+for (const module of ['node:http','node:https']) {
+  require(module).request = deny; require(module).get = deny;
+}
+for (const name of ['lookup','resolve','resolve4','resolve6']) require('node:dns')[name] = deny;
+const root = __dirname;
+const read = file => fs.readFileSync(path.join(root,file),'utf8').replace(/^\uFEFF/,'');
+function config() { return { APP_ENV:'test', DEV_SERVICE_ORIGINS:['http://127.0.0.1:54321','http://localhost:5173','http://localhost:8000','http://localhost:8501'],
+  SUPABASE_URL:'http://127.0.0.1:54321',SUPABASE_ANON_KEY:'synthetic-anon-placeholder',WEBSITE_ORIGIN:'http://localhost:5173',
+  API_ORIGIN:'http://localhost:8000',STREAMLIT_ORIGIN:'http://localhost:8501',REPORTS_BUCKET:'synthetic-reports',BILLING_MODE:'mock',LLM_PROVIDER_MODE:'mock' }; }
+function browser(raw=config(),href='http://localhost:5173/') {
+ const counts={network:0,storage:0,cookies:0};const location=new URL(href);const nodes=new Map();const events={};
+ function node(tag='aside') { return {tagName:tag.toUpperCase(),style:{},classList:{toggle(){},remove(){},add(){}},setAttribute(){},addEventListener(){},appendChild(){},textContent:'',disabled:false}; }
+ for (const id of ['upgrade-row','upgrade-note','cancel-note']) nodes.set(id,node());
+ const document={readyState:'loading',body:{prepend(n){nodes.set(n.id,n);}},getElementById:id=>nodes.get(id)||null,
+  createElement:tag=>{if(['script','iframe','img'].includes(tag))throw Error('Resource injection forbidden');return node(tag);},
+  addEventListener:(name,fn)=>{events[name]=fn;},querySelectorAll:()=>[],querySelector:()=>null,title:'Synthetic',head:{appendChild:deny}};
+ Object.defineProperty(document,'cookie',{get(){counts.cookies++;return 'orb_cookie_consent=production';},set(){counts.cookies++;throw Error('Cookie write forbidden');}});
+ const c={document,location,URL,console:{error(){},log(){}},atob:s=>Buffer.from(s,'base64').toString('binary'),
+  localStorage:{getItem(){counts.storage++;return null;},setItem(){counts.storage++;},removeItem(){counts.storage++;}},
+  fetch(){counts.network++;throw Error('Network forbidden');},XMLHttpRequest:deny,WebSocket:deny,EventSource:deny,navigator:{sendBeacon:deny},
+  setTimeout:deny,clearTimeout(){},AbortController,Event:class{},history:{replaceState:deny},addEventListener(){},dispatchEvent(){},ORBTECH_RUNTIME_CONFIG:raw};
+ c.window=c;vm.createContext(c);vm.runInContext(read('js/runtime-config.js'),c);
+ return {c,counts,nodes,events,run:file=>vm.runInContext(read(file),c,{filename:file})};
+}
+function rejects(raw,href){const b=browser(raw,href);assert.throws(()=>b.c.OrbRuntime.getConfig());assert.equal(b.counts.network,0);}
+test('missing configuration fails closed',()=>{const b=browser(null);delete b.c.ORBTECH_RUNTIME_CONFIG;assert.throws(()=>b.c.OrbRuntime.getConfig());rejects(null);rejects({});});
+test('invalid and production environment refused',()=>{for(const env of ['', 'staging','production']){const x=config();x.APP_ENV=env;rejects(x);}});
+test('valid explicit development and test configuration',()=>{for(const env of ['development','test']){const x=config();x.APP_ENV=env;assert.equal(browser(x).c.OrbRuntime.getConfig().APP_ENV,env);}});
+test('production destinations rejected in every service field',()=>{for(const host of ['orbtech.in','app.orbtech.in','orbtech-api.onrender.com','yvundbsygluaskpdvhup.supabase.co'])for(const name of ['SUPABASE_URL','WEBSITE_ORIGIN','API_ORIGIN','STREAMLIT_ORIGIN']){const x=config();x[name]='https://'+host;rejects(x);}});
+test('production cannot be explicitly allowlisted',()=>{const x=config();x.DEV_SERVICE_ORIGINS.push('https://orbtech.in');rejects(x);});
+test('unknown hosted projects refused even if allowlisted',()=>{const x=config();x.SUPABASE_URL='https://unknown.supabase.co';x.DEV_SERVICE_ORIGINS.push(x.SUPABASE_URL);rejects(x);});
+test('unknown local ports refused',()=>{const x=config();x.API_ORIGIN='http://localhost:9999';rejects(x);});
+test('misleading URL forms refused before WHATWG normalization',()=>{const b=browser();for(const url of ['http://127.1','http://2130706433','http://0177.0.0.1','http://0x7f000001','http://localhost:080','http://localhost:0','http://localhost:65536','http://localhost.','http://localhost:','http://user:secret@localhost','http://localhost\\@evil.invalid','http://localhost%2f.evil.invalid','http://localhost/path','http://localhost?secret=key','http://localhost#token','http://localhost\n','https://localhоst'])assert.throws(()=>b.c.OrbRuntime.normalizeOrigin(url,'URL'));});
+test('IPv6 and default ports normalize consistently',()=>{const b=browser();assert.equal(b.c.OrbRuntime.normalizeOrigin('http://[0:0:0:0:0:0:0:1]:8000/','URL'),'http://[::1]:8000');assert.equal(b.c.OrbRuntime.normalizeOrigin('http://LOCALHOST:80/','URL'),'http://localhost');});
+test('browser origin mismatch and file protocol refused',()=>{rejects(config(),'http://localhost:9999/');rejects(config(),'file:///tmp/index.html');});
+test('URL tokens and callback codes are not imported',()=>{for(const suffix of ['#access_token=synthetic','#refresh_token=synthetic','?code=synthetic'])rejects(config(),'http://localhost:5173/'+suffix);});
+test('server-side settings and service credentials refused safely',()=>{for(const name of ['SUPABASE_KEY','RAZORPAY_KEY_SECRET','ADMIN_PASSWORD']){const x=config();x[name]='secret-value';const b=browser(x);assert.throws(()=>b.c.OrbRuntime.getConfig(),e=>!e.message.includes('secret-value'));}const x=config();x.SUPABASE_ANON_KEY='sb_secret_synthetic';rejects(x);x.SUPABASE_ANON_KEY='header.'+Buffer.from(JSON.stringify({role:'service_role'})).toString('base64url')+'.synthetic';rejects(x);x.SUPABASE_ANON_KEY='header.'+Buffer.from(JSON.stringify({role:'anon',ref:'yvundbsygluaskpdvhup'})).toString('base64url')+'.synthetic';rejects(x);});
+test('validation precedes SDK construction',()=>{const b=browser(null);b.run('js/supabase.js');let calls=0;assert.throws(()=>b.c.OrbSupabase.initialize({createClient(){calls++;}}));assert.equal(calls,0);});
+test('missing local SDK keeps integration unavailable',()=>{const b=browser();b.run('js/supabase.js');assert.throws(()=>b.c.OrbSupabase.initialize());assert.equal(b.c.OrbSupabase.ready(),false);assert.equal(b.counts.network,0);});
+test('SDK session namespace excludes production storage and URL detection',()=>{const b=browser();b.run('js/supabase.js');let options;b.c.OrbSupabase.initialize({createClient(url,key,o){options=o;return {};}});assert.ok(options.auth.storageKey.startsWith('orbtech-v2-test-'));assert.equal(options.auth.autoRefreshToken,false);assert.equal(options.auth.detectSessionInUrl,false);assert.throws(()=>options.auth.storage.getItem('sb-production-auth-token'));assert.equal(b.counts.storage,0);options.auth.storage.getItem(options.auth.storageKey);assert.equal(b.counts.storage,1);});
+test('all Supabase destinations and cached configuration changes checked',()=>{const b=browser();b.run('js/supabase.js');let options;b.c.OrbSupabase.initialize({createClient(u,k,o){options=o;return {};}});for(const url of ['https://orbtech.in/auth/v1/user','http://localhost:9999/rest/v1/data','http://user:secret@127.0.0.1:54321/auth/v1/user'])assert.throws(()=>options.global.fetch(url));assert.equal(b.counts.network,0);b.c.ORBTECH_RUNTIME_CONFIG.APP_ENV='production';assert.throws(()=>options.global.fetch('http://127.0.0.1:54321/auth/v1/user'));assert.equal(b.counts.network,0);});
+test('approved mock fetch disables redirects and ambient credentials',()=>{const b=browser();b.run('js/supabase.js');let options,seen;b.c.OrbSupabase.initialize({createClient(u,k,o){options=o;return {};}});b.c.fetch=(u,i)=>{seen=i;return {};};options.global.fetch('http://127.0.0.1:54321/auth/v1/user',{redirect:'follow',credentials:'include'});assert.equal(seen.redirect,'error');assert.equal(seen.credentials,'omit');});
+test('auth redirects restricted to configured website paths',()=>{const r=browser().c.OrbRuntime;assert.equal(r.authRedirect('/login/'),'http://localhost:5173/login/');assert.equal(r.authRedirect('/reset-password/'),'http://localhost:5173/reset-password/');for(const p of ['https://orbtech.in','//orbtech.in','/other','/login/?next=https://orbtech.in'])assert.throws(()=>r.authRedirect(p));});
+test('Streamlit handoff never sets cookies or redirects',()=>{const b=browser();b.run('js/auth.js');b.c.handoffToStreamlit('synthetic-token');b.c.setHandoffCookie('synthetic-token');assert.equal(b.counts.cookies,0);assert.equal(b.c.location.href,'http://localhost:5173/');assert.equal(b.counts.network,0);});
+test('reports use configured development bucket',()=>{const b=browser();assert.equal(b.c.OrbRuntime.reportBucket(),'synthetic-reports');assert.ok(read('reports.html').includes('const REPORTS_BUCKET = window.OrbRuntime.reportBucket();'));});
+test('tracking cannot be activated by saved production consent',()=>{const b=browser();b.run('js/consent.js');assert.equal(b.c.OrbConsent.hasConsent('analytics'),false);assert.equal(b.c.OrbConsent.setConsent({analytics:true,marketing:true}).marketing,false);assert.equal(b.counts.storage,0);assert.equal(b.counts.cookies,0);assert.equal(b.counts.network,0);});
+test('billing direct helpers and polling cannot call providers',async()=>{const b=browser();b.run('js/supabase.js');const html=read('billing.html');const inline=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].at(-1)[1];const start=inline.indexOf('function billingAuthErrorMessage(');const end=inline.indexOf('document.addEventListener("click"');vm.runInContext(inline.slice(start,end),b.c);b.c.Razorpay=deny;await b.c.startCheckout();await b.c.cancelSubscription();await b.c.pollForProPlan('synthetic-user');assert.equal(b.counts.network,0);assert.equal(b.counts.cookies,0);assert.match(b.nodes.get('upgrade-row').textContent,/mock-disabled/);});
+test('disabled form capture prevents native requests',()=>{const b=browser(null);b.run('js/development.js');let prevented=0;b.events.submit({preventDefault(){prevented++;}});b.events.DOMContentLoaded();assert.equal(prevented,1);assert.equal(b.counts.network,0);});
+const pages=['index.html','case-study.html','billing.html','dashboard.html','reports.html','profile.html','login/index.html','signup/index.html','reset-password/index.html'];
+for(const page of pages)for(const supplied of [null,config()])test(page+': resource order and '+(supplied?'valid-config/no-SDK':'missing-config')+' scripts safe',()=>{const html=read(page);assert.ok(html.indexOf('Content-Security-Policy')<html.indexOf('<script'));assert.match(html,/connect-src 'none'/);assert.match(html,/form-action 'none'/);assert.doesNotMatch(html,/<(?:script|iframe|img)\b[^>]*\bsrc=["'](?:https?:)?\/\//i);assert.doesNotMatch(html,/<link\b[^>]*\brel=["'](?:stylesheet|preconnect)["'][^>]*https?:/i);assert.doesNotMatch(html,/<form\b[^>]*\baction=/i);const b=browser(supplied);for(const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)){if(m[1].includes('application/ld+json')){JSON.parse(m[2]);continue;}const src=/src=["']([^"']+)/.exec(m[1]);if(src){if(src[1].endsWith('runtime-config.local.js'))continue;const file=src[1].startsWith('/')?src[1].slice(1):path.posix.join(path.posix.dirname(page),src[1]);b.run(file);}else{new vm.Script(m[2]);vm.runInContext(m[2],b.c);}}if(b.events.DOMContentLoaded)b.events.DOMContentLoaded();assert.equal(b.counts.network,0);assert.equal(b.counts.cookies,0);});
+test('ML suspension and plan text retained',()=>{for(const file of ['index.html','case-study.html','dashboard.html','billing.html'])assert.ok(read(file).includes('ML Security Scanner is temporarily unavailable'));assert.ok(read('signup/index.html').includes('New ML scans are temporarily unavailable'));assert.match(read('billing.html'),/1 scan for the lifetime of your account/);assert.ok(read('index.html').includes('₹2,999'));});
+
+test('authentication interfaces remain disabled without local SDK',()=>{const b=browser();b.run('js/supabase.js');b.run('js/auth.js');b.c.initLoginPage();b.c.initSignupPage();b.c.initResetPasswordPage();assert.equal(b.counts.network,0);assert.equal(b.counts.storage,0);});
+test('only mock provider modes allowed',()=>{for(const name of ['BILLING_MODE','LLM_PROVIDER_MODE'])for(const mode of ['live','test','production']){const x=config();x[name]=mode;rejects(x);}});
+test('no automatic CSS or resource hints target external origins',()=>{for(const page of pages){const html=read(page);assert.doesNotMatch(html,/@import[^;]*https?:|url\(\s*["']?https?:|<link[^>]+rel=["'](?:dns-prefetch|preload|prefetch|modulepreload)["'][^>]+https?:/i);}});

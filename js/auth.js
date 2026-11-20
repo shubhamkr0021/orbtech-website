@@ -21,18 +21,15 @@
 //     60s. (Possible future hardening: single-use tracking keyed on the
 //     JWT's jti, if a tighter guarantee is ever needed.)
 
-const STREAMLIT_URL = "https://app.orbtech.in/?auth_mode=handoff";
-const HANDOFF_COOKIE_DOMAIN = ".orbtech.in";
+const STREAMLIT_URL = null; // Backend Streamlit startup remains disabled.
+const HANDOFF_COOKIE_DOMAIN = null; // Never create production-scoped cookies.
 
 function setHandoffCookie(token) {
-    const secureFlag = location.protocol === "https:" ? "; Secure" : "";
-    const domainFlag = HANDOFF_COOKIE_DOMAIN ? `; Domain=${HANDOFF_COOKIE_DOMAIN}` : "";
-    document.cookie = `orb_handoff_token=${encodeURIComponent(token)}; Path=/; Max-Age=60; SameSite=Lax${secureFlag}${domainFlag}`;
+    return window.OrbRuntime.scannerUnavailable();
 }
 
 function handoffToStreamlit(accessToken) {
-    setHandoffCookie(accessToken);
-    window.location.href = STREAMLIT_URL;
+    return window.OrbRuntime.scannerUnavailable();
 }
 
 // ---- Human-readable error mapping — never show a raw Supabase error. ----
@@ -93,7 +90,7 @@ function validatePasswordPolicy(pw) {
 async function redirectIfAlreadyLoggedIn() {
     const { data } = await supabaseClient.auth.getSession();
     if (data.session) {
-        window.location.href = "../dashboard.html";
+        window.location.href = window.OrbRuntime.authRedirect("/dashboard.html");
         return true;
     }
     return false;
@@ -108,6 +105,7 @@ async function resendVerification(email) {
 // LOGIN
 // ==================================================================
 function initLoginPage() {
+    if (!window.OrbSupabase.ready()) return window.OrbRuntime.unavailable("Authentication integration");
     redirectIfAlreadyLoggedIn();
 
     const form = document.getElementById("login-form");
@@ -155,7 +153,7 @@ function initLoginPage() {
                 }
                 localStorage.removeItem("orb_pending_registration");
             }
-            window.location.href = "../dashboard.html";
+            window.location.href = window.OrbRuntime.authRedirect("/dashboard.html");
         } catch (err) {
             statusEl.textContent = "Unexpected error. Please try again.";
             statusEl.className = "error";
@@ -184,6 +182,7 @@ function initLoginPage() {
 // SIGNUP
 // ==================================================================
 function initSignupPage() {
+    if (!window.OrbSupabase.ready()) return window.OrbRuntime.unavailable("Authentication integration");
     redirectIfAlreadyLoggedIn();
 
     const form = document.getElementById("signup-form");
@@ -261,7 +260,7 @@ function initSignupPage() {
                 password,
                 options: {
                     data: { full_name: name },
-                    emailRedirectTo: window.location.origin + "/login/",
+                    emailRedirectTo: window.OrbRuntime.authRedirect("/login/"),
                 },
             });
             if (error) {
@@ -306,6 +305,7 @@ function initSignupPage() {
 // RESET PASSWORD (two modes on one page)
 // ==================================================================
 function initResetPasswordPage() {
+    if (!window.OrbSupabase.ready()) return window.OrbRuntime.unavailable("Authentication integration");
     const requestSection = document.getElementById("request-section");
     const updateSection = document.getElementById("update-section");
     const requestForm = document.getElementById("request-form");
@@ -359,7 +359,7 @@ function initResetPasswordPage() {
 
         try {
             const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + "/reset-password/",
+                redirectTo: window.OrbRuntime.authRedirect("/reset-password/"),
             });
             if (error) {
                 requestStatus.textContent = friendlyAuthError(error);
@@ -406,7 +406,7 @@ function initResetPasswordPage() {
             updateStatus.textContent = "Password updated. Redirecting to login...";
             updateStatus.className = "success";
             await supabaseClient.auth.signOut();
-            setTimeout(() => { window.location.href = "../login/"; }, 1500);
+            setTimeout(() => { window.location.href = window.OrbRuntime.authRedirect("/login/"); }, 1500);
         } catch (err) {
             updateStatus.textContent = "Network error — please check your connection and try again.";
             updateStatus.className = "error";

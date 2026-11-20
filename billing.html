@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'; worker-src 'none'">
+<script src="/js/runtime-config.local.js"></script>
+<script src="/js/runtime-config.js"></script>
+<script src="/js/development.js"></script>
+<style>.reveal, .report-feature { opacity:1 !important; transform:none !important; } fieldset { border:0; margin:0; padding:0; min-width:0; } #development-status { padding:16px; border:1px solid #F25F1F; margin:16px; font-family:system-ui; }</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Billing · OrbTech</title>
 <link rel="icon" type="image/png" href="/logo/orb_tech_icon_512px.png">
@@ -19,10 +25,10 @@
   ============================================================================
 -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 
 <style>
   :root {
@@ -215,13 +221,15 @@
 </main>
 
 <script>
-const LOGIN_URL = "login/";
+if (window.OrbSupabase && window.OrbSupabase.ready()) {
+
+const LOGIN_URL = window.OrbRuntime.authRedirect("/login/");
 const FREE_LIMIT = 1;    // lifetime, combined ML+LLM — matches Phase B
 const PRO_LIMIT  = 100;  // per calendar month (UTC)
 
 // FastAPI scanner backend -- confirmed live deployment serving
 // /create-subscription and /razorpay-webhook.
-const API_URL = "https://orbtech-api.onrender.com";
+const API_URL = window.OrbRuntime.getConfig().API_ORIGIN;
 
 // Opportunistic warm-up: orbtech-api sleeps on Render's free tier, so a
 // fire-and-forget ping while the user is still reading the page gives it
@@ -229,11 +237,10 @@ const API_URL = "https://orbtech-api.onrender.com";
 // on failure and never awaited -- this must never block or affect page
 // render, and a failed ping here isn't worth surfacing (the checkout
 // flow's own progressive UX below handles a still-cold server).
-fetch(`${API_URL}/health`).catch(() => {});
+// Development: no API warm-up.
 
-// TEST MODE Razorpay key id -- the PUBLIC key (safe client-side, it's not
-// the secret).
-const RAZORPAY_KEY_ID = "rzp_live_TefTkw6IbSJhI8";
+// Development billing is disabled; no real provider configuration is loaded.
+const RAZORPAY_KEY_ID = null; // No provider identifiers in development.
 
 // ---- Contact link for the Pro "thank you" state below. ----
 const UPGRADE_CONTACT = "mailto:security@orbtech.in?subject=Upgrade%20to%20OrbTech%20Pro&body=Hi%2C%20I%27d%20like%20to%20upgrade%20my%20OrbTech%20account%20to%20Pro.";
@@ -343,6 +350,7 @@ function billingAuthErrorMessage(status){
 }
 
 async function startCheckout(){
+  return window.OrbRuntime.billingUnavailable();
   const btn  = $("upgrade-btn");
   const note = $("upgrade-note");
   btn.disabled = true;
@@ -443,6 +451,7 @@ async function startCheckout(){
 // webhook delivery (not a failure) shouldn't leave the user staring at a
 // spinner forever.
 async function pollForProPlan(userId){
+  return window.OrbRuntime.billingUnavailable();
   const note = $("upgrade-note");
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline){
@@ -470,6 +479,7 @@ async function refreshBilling(userId){
 }
 
 async function cancelSubscription(){
+  return window.OrbRuntime.billingUnavailable();
   const btn = $("cancel-subscription-btn");
   const note = $("cancel-note");
   if (!btn || !note) return;
@@ -550,6 +560,8 @@ document.addEventListener("click", (e) => {
     showError("Couldn't load your billing details. Please refresh, or sign in again if this continues.");
   }
 })();
+
+} else { window.OrbRuntime.unavailable("Account integration"); }
 </script>
 </body>
 </html>

@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'; worker-src 'none'">
+<script src="/js/runtime-config.local.js"></script>
+<script src="/js/runtime-config.js"></script>
+<script src="/js/development.js"></script>
+<style>.reveal, .report-feature { opacity:1 !important; transform:none !important; } fieldset { border:0; margin:0; padding:0; min-width:0; } #development-status { padding:16px; border:1px solid #F25F1F; margin:16px; font-family:system-ui; }</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Profile · OrbTech</title>
 <link rel="icon" type="image/png" href="/logo/orb_tech_icon_512px.png">
@@ -21,7 +27,7 @@
   ============================================================================
 -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
 
@@ -182,7 +188,9 @@
 </main>
 
 <script>
-const LOGIN_URL = "login/";
+if (window.OrbSupabase && window.OrbSupabase.ready()) {
+
+const LOGIN_URL = window.OrbRuntime.authRedirect("/login/");
 const $ = (id) => document.getElementById(id);
 function showError(msg){ $("err-slot").innerHTML = `<div class="banner error">${msg}</div>`; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
@@ -338,6 +346,8 @@ async function saveName(){
     $("providers").innerHTML = `<span class="prov-empty">Couldn't load models tested.</span>`;
   }
 })();
+
+} else { window.OrbRuntime.unavailable("Account integration"); }
 </script>
 </body>
 </html>

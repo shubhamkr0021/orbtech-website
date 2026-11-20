@@ -2,6 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'; worker-src 'none'">
+<script src="/js/runtime-config.local.js"></script>
+<script src="/js/runtime-config.js"></script>
+<script src="/js/development.js"></script>
+<style>.reveal, .report-feature { opacity:1 !important; transform:none !important; } fieldset { border:0; margin:0; padding:0; min-width:0; } #development-status { padding:16px; border:1px solid #F25F1F; margin:16px; font-family:system-ui; }</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dashboard · OrbTech</title>
 
@@ -26,7 +32,7 @@
   ============================================================================
 -->
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script src="js/supabase.js"></script>
 <script src="js/auth.js"></script>
 
@@ -254,6 +260,8 @@
 </main>
 
 <script>
+if (window.OrbSupabase && window.OrbSupabase.ready()) {
+
 /* ============================================================================
    CONFIG
    supabaseClient comes from js/supabase.js (shared with login/signup/reset-
@@ -261,7 +269,7 @@
    STREAMLIT_URL / setHandoffCookie() / handoffToStreamlit() come from
    js/auth.js — reused as-is for "Start new scan", not reimplemented.
    ============================================================================ */
-const LOGIN_URL = "login/"; // where a logged-out visitor goes
+const LOGIN_URL = window.OrbRuntime.authRedirect("/login/"); // where a logged-out visitor goes
 
 /* Phase B quota constants — MUST match the scanner exactly or the two disagree */
 const FREE_LIMIT = 1;    // lifetime, combined ML+LLM
@@ -497,6 +505,8 @@ function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c =>
     $("welcome-line").textContent = "Welcome back";
   }
 })();
+
+} else { window.OrbRuntime.unavailable("Account integration"); }
 </script>
 </body>
 </html>

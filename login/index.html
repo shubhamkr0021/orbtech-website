@@ -2,13 +2,19 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'none'; worker-src 'none'">
+<script src="/js/runtime-config.local.js"></script>
+<script src="/js/runtime-config.js"></script>
+<script src="/js/development.js"></script>
+<style>.reveal, .report-feature { opacity:1 !important; transform:none !important; } fieldset { border:0; margin:0; padding:0; min-width:0; } #development-status { padding:16px; border:1px solid #F25F1F; margin:16px; font-family:system-ui; }</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Log in - OrbTech</title>
 <script src="/js/consent.js"></script>
 
 <link rel="icon" type="image/png" href="../logo/orb_tech_icon_512px.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -71,7 +77,7 @@ button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
     <h1>Log in</h1>
     <p class="subtitle">Welcome back.</p>
 
-    <form id="login-form" autocomplete="on">
+    <form id="login-form" autocomplete="on"><fieldset disabled>
       <label for="email">Email</label>
       <input type="email" id="email" placeholder="you@company.com" required autocomplete="username">
 
@@ -81,7 +87,7 @@ button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
       <button type="submit" id="submit-btn">Log in</button>
       <button type="button" id="resend-btn">Resend verification email</button>
       <div id="status"></div>
-    </form>
+    </fieldset></form>
 
     <div class="footer-links">
       <a href="../reset-password/">Forgot password?</a>
@@ -89,9 +95,13 @@ button[type="submit"]:disabled { opacity: 0.6; cursor: default; }
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.2/dist/umd/supabase.js" integrity="sha384-OUpie84zd1LdwNlK9uJJQRwab0BLqo3eKYKFh7hSVL58FSk7wPp2l0kfUMIIoaQd" crossorigin="anonymous"></script>
+
   <script src="../js/supabase.js"></script>
   <script src="../js/auth.js"></script>
-  <script>initLoginPage();</script>
+  <script>
+if (window.OrbSupabase && window.OrbSupabase.ready()) {
+initLoginPage();
+} else { window.OrbRuntime.unavailable("Account integration"); }
+</script>
 </body>
 </html>

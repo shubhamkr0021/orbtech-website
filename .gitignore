@@ -1,0 +1,16 @@
+﻿# V2: do not commit real local configuration or credentials.
+.env
+.env.*
+!.env.example
+js/runtime-config.local.js
+**/secrets.*
+credentials/
+.credentials/
+*.pem
+*.key
+.aws/
+.azure/
+.gcloud/
+**/runtime-config.local.*
+*.p12
+*.pfx
